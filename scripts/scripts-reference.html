@@ -1,0 +1,1442 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vlugboek Script Reference</title>
+  <style>
+    :root {
+      --midnight: #0b1623;
+      --blue: #102235;
+      --line: #d9d2c5;
+      --gold: #c79a47;
+      --gold-dark: #9f7530;
+      --ivory: #f8f6f1;
+      --paper: #ffffff;
+      --text: #182331;
+      --muted: #5b6570;
+      --green: #315d4e;
+      --red: #7b2e3b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--ivory);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+      line-height: 1.55;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--midnight), var(--blue));
+      color: var(--ivory);
+      padding: 42px 24px;
+      border-bottom: 5px solid var(--gold);
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 28px auto 56px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      font-family: Georgia, Cambria, "Times New Roman", serif;
+      font-weight: 700;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.6rem);
+      line-height: 1;
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+      color: var(--midnight);
+    }
+
+    h3 {
+      font-size: 1.35rem;
+      color: var(--midnight);
+    }
+
+    p {
+      margin: 8px 0 0;
+    }
+
+    a {
+      color: var(--gold-dark);
+      font-weight: 700;
+    }
+
+    code,
+    pre {
+      font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+    }
+
+    pre {
+      margin: 12px 0 0;
+      padding: 14px;
+      overflow-x: auto;
+      background: #09111d;
+      color: #f8f6f1;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .eyebrow {
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      color: #d8d1c4;
+      font-size: 1.08rem;
+      margin-top: 18px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .two-col {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 34px rgba(11, 22, 35, 0.08);
+      padding: 22px;
+    }
+
+    .script-card {
+      display: grid;
+      gap: 16px;
+    }
+
+    .script-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(199, 154, 71, 0.35);
+      background: rgba(199, 154, 71, 0.12);
+      color: var(--gold-dark);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+    }
+
+    th {
+      background: var(--midnight);
+      color: var(--ivory);
+      text-align: left;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    td:first-child {
+      width: 220px;
+      font-weight: 700;
+      color: var(--midnight);
+    }
+
+    .note {
+      border-left: 4px solid var(--gold);
+      background: rgba(199, 154, 71, 0.12);
+      padding: 14px 16px;
+      border-radius: 0 8px 8px 0;
+      color: var(--midnight);
+    }
+
+    .danger {
+      border-left-color: var(--red);
+      background: rgba(123, 46, 59, 0.08);
+    }
+
+    .ok {
+      border-left-color: var(--green);
+      background: rgba(49, 93, 78, 0.08);
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      text-decoration: none;
+      color: var(--midnight);
+    }
+
+    .toc a:hover {
+      border-color: var(--gold);
+      color: var(--gold-dark);
+    }
+
+    section {
+      margin-top: 24px;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 28px;
+      text-align: center;
+    }
+
+    @media (max-width: 820px) {
+      header {
+        padding: 32px 18px;
+      }
+
+      main {
+        width: calc(100% - 20px);
+        margin-top: 18px;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      table,
+      tbody,
+      tr,
+      td,
+      th {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        border-bottom: 1px solid var(--line);
+      }
+
+      td {
+        border-bottom: 0;
+      }
+
+      td:first-child {
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">Vlugboek Operations</div>
+    <h1>Script Reference</h1>
+    <p class="subtitle">
+      A practical guide to the local start/stop scripts, release bundling, Ubuntu deployment,
+      and remote health checks. Keep this file updated as new scripts are added.
+    </p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Quick Commands</h2>
+      <div class="grid two-col">
+        <div>
+          <h3>Local Development</h3>
+          <pre>.\scripts\start-local.ps1
+.\scripts\stop-local.ps1</pre>
+        </div>
+        <div>
+          <h3>Production Deployment</h3>
+          <pre>.\scripts\build-release.ps1
+.\scripts\deploy-emailer-linux.ps1
+.\scripts\deploy-linux.ps1
+.\scripts\rollback-linux.ps1
+.\scripts\remote-health.ps1
+.\scripts\flush-remote-db.ps1</pre>
+        </div>
+        <div>
+          <h3>Android APKs</h3>
+          <pre>.\scripts\sync-android.ps1
+.\scripts\save-mobile-signing-secret.ps1 -UseSamePassword
+.\scripts\build-android-debug.ps1
+.\scripts\build-android-release.ps1
+.\scripts\deploy-mobile-client.ps1</pre>
+        </div>
+        <div>
+          <h3>Icons</h3>
+          <pre>.\scripts\generate-icons.ps1</pre>
+        </div>
+      </div>
+      <p class="note">
+        PowerShell scripts are designed to run from the repository root:
+        <code>C:\Development\Vlugboek</code>.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Table of Contents</h2>
+      <div class="toc">
+        <a href="#start-local">start-local.ps1</a>
+        <a href="#stop-local">stop-local.ps1</a>
+        <a href="#build-release">build-release.ps1</a>
+        <a href="#deploy-emailer-linux">deploy-emailer-linux.ps1</a>
+        <a href="#deploy-linux">deploy-linux.ps1</a>
+        <a href="#rollback-linux">rollback-linux.ps1</a>
+        <a href="#remote-health">remote-health.ps1</a>
+        <a href="#flush-remote-db">flush-remote-db.ps1</a>
+        <a href="#sync-android">sync-android.ps1</a>
+        <a href="#build-android-debug">build-android-debug.ps1</a>
+        <a href="#build-android-release">build-android-release.ps1</a>
+        <a href="#deploy-mobile-client">deploy-mobile-client.ps1</a>
+        <a href="#generate-icons">generate-icons.ps1</a>
+        <a href="#save-mobile-signing-secret">save-mobile-signing-secret.ps1</a>
+        <a href="#create-android-keystore">create-android-keystore.ps1</a>
+        <a href="#run-backend">run-backend.cmd</a>
+        <a href="#run-emailer">run-emailer.cmd</a>
+        <a href="#run-frontend">run-frontend.cmd</a>
+        <a href="#install-emailer">linux/install-emailer.sh</a>
+        <a href="#install-update">linux/install-or-update.sh</a>
+      </div>
+    </section>
+
+    <section id="start-local" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>start-local.ps1</h2>
+          <p>Starts the local Vlugboek backend and frontend.</p>
+        </div>
+        <span class="tag">Local</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-Build</code></td>
+            <td>Packages the backend before starting. Also packages automatically when the jar is missing.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-BackendPort</code></td>
+            <td>Backend port used when checking whether the API is already running.</td>
+            <td><code>8081</code></td>
+          </tr>
+          <tr>
+            <td><code>-FrontendPort</code></td>
+            <td>Frontend port used when checking whether Vite is already running.</td>
+            <td><code>5173</code></td>
+          </tr>
+          <tr>
+            <td><code>-MailerPort</code></td>
+            <td>Mailer port used when checking whether the local PDF mailer is already running.</td>
+            <td><code>8788</code></td>
+          </tr>
+          <tr>
+            <td><code>-SkipMailer</code></td>
+            <td>Starts only the backend and frontend, leaving the local mailer alone.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\start-local.ps1
+.\scripts\start-local.ps1 -Build
+.\scripts\start-local.ps1 -BackendPort 8081 -FrontendPort 5173</pre>
+    </section>
+
+    <section id="stop-local" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>stop-local.ps1</h2>
+          <p>Stops local Vlugboek processes started by <code>start-local.ps1</code>.</p>
+        </div>
+        <span class="tag">Local</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-AlsoStopPorts</code></td>
+            <td>Also stops any process listening on the configured ports. Useful if a previous run lost its PID file.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-Ports</code></td>
+            <td>Ports to inspect when <code>-AlsoStopPorts</code> is used.</td>
+            <td><code>8081, 5173, 8788</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\stop-local.ps1
+.\scripts\stop-local.ps1 -AlsoStopPorts
+.\scripts\stop-local.ps1 -AlsoStopPorts -Ports 8081,5173,8788</pre>
+    </section>
+
+    <section id="build-release" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>build-release.ps1</h2>
+          <p>Builds and bundles the application for Linux deployment.</p>
+        </div>
+        <span class="tag">Release</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-Release</code></td>
+            <td>Release identifier used in the bundle and extracted folder name.</td>
+            <td>Current timestamp</td>
+          </tr>
+          <tr>
+            <td><code>-SkipBuild</code></td>
+            <td>Skips Maven/Vite builds and bundles existing build outputs.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\build-release.ps1
+.\scripts\build-release.ps1 -Release 2026-05-23-v1
+.\scripts\build-release.ps1 -SkipBuild</pre>
+
+      <p class="note ok">
+        Output is written to <code>dist\deploy\vlugboek-&lt;release&gt;.tar.gz</code>. Each bundle includes
+        <code>app\release-info.properties</code> so <code>/api/healthz</code> can report version,
+        release, build time, and git commit details.
+      </p>
+    </section>
+
+    <section id="deploy-linux" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>deploy-linux.ps1</h2>
+          <p>Builds, uploads, installs, starts, and health-checks Vlugboek on Ubuntu.</p>
+        </div>
+        <span class="tag">Deploy</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-Server</code></td>
+            <td>SSH host or IP address.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-User</code></td>
+            <td>SSH username.</td>
+            <td><code>root</code></td>
+          </tr>
+          <tr>
+            <td><code>-RemoteRoot</code></td>
+            <td>Application root on the server.</td>
+            <td><code>/opt/vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-Domain</code></td>
+            <td>Public domain used for nginx config and public checks.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-BackendPort</code></td>
+            <td>Port for the Spring Boot API behind nginx.</td>
+            <td><code>18081</code></td>
+          </tr>
+          <tr>
+            <td><code>-SpringProfilesActive</code></td>
+            <td>Spring profile to activate on the remote service. Use <code>postgres</code> for PostgreSQL.</td>
+            <td>Blank</td>
+          </tr>
+          <tr>
+            <td><code>-DatabaseUrl</code>, <code>-DatabaseUser</code>, <code>-DatabasePassword</code></td>
+            <td>PostgreSQL JDBC connection values passed to the remote service when using the PostgreSQL profile.</td>
+            <td>Blank</td>
+          </tr>
+          <tr>
+            <td><code>-SeedReferenceData</code></td>
+            <td>Seeds the official PWDF federation, clubs, and lofts if they do not exist.</td>
+            <td><code>$true</code></td>
+          </tr>
+          <tr>
+            <td><code>-SeedPdfImport</code></td>
+            <td>Imports bundled seed PDFs on startup. Turn off for hardened PostgreSQL production deploys.</td>
+            <td><code>$true</code></td>
+          </tr>
+          <tr>
+            <td><code>-SeedAdmin</code>, <code>-SeedAdminEmail</code>, <code>-SeedAdminName</code>, <code>-SeedAdminPassword</code></td>
+            <td>Controls explicit admin bootstrap seeding.</td>
+            <td>Enabled with local MVP admin defaults</td>
+          </tr>
+          <tr>
+            <td><code>-SeedDemoUsers</code>, <code>-SeedDemoEmail</code>, <code>-SeedDemoName</code>, <code>-SeedDemoPassword</code></td>
+            <td>Controls demo user seeding.</td>
+            <td>Enabled with local MVP demo defaults</td>
+          </tr>
+          <tr>
+            <td><code>-AuthenticatedHealthCheck</code></td>
+            <td>Runs login and authenticated dashboard checks during deployment.</td>
+            <td><code>$true</code></td>
+          </tr>
+          <tr>
+            <td><code>-HealthLoginEmail</code>, <code>-HealthLoginPassword</code></td>
+            <td>Credentials used when authenticated health checks are enabled.</td>
+            <td><code>demo@vlugboek.local / demo123</code></td>
+          </tr>
+          <tr>
+            <td><code>-AdminHealthCheck</code></td>
+            <td>Runs admin login plus admin-only document and organisation endpoint checks during deployment.</td>
+            <td><code>$false</code></td>
+          </tr>
+          <tr>
+            <td><code>-HealthAdminEmail</code>, <code>-HealthAdminPassword</code></td>
+            <td>System-admin credentials used when admin health checks are enabled.</td>
+            <td><code>admin@vlugboek.local / admin123</code></td>
+          </tr>
+          <tr>
+            <td><code>-RollbackOnFailure</code></td>
+            <td>Automatically relinks the previous release and restarts the service when a post-switch deploy check fails.</td>
+            <td><code>$true</code></td>
+          </tr>
+          <tr>
+            <td><code>-BundlePath</code></td>
+            <td>Deploy an existing bundle instead of building a new one.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-SkipBuild</code></td>
+            <td>Passes through to <code>build-release.ps1</code> when no bundle path is supplied.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipPublicHealthCheck</code></td>
+            <td>Skips public HTTPS checks after remote install. Useful before DNS or SSL is ready.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\deploy-linux.ps1
+.\scripts\deploy-linux.ps1 -Server 123.123.123.123
+.\scripts\deploy-linux.ps1 -BundlePath .\dist\deploy\vlugboek-20260523-130921.tar.gz
+.\scripts\deploy-linux.ps1 -SkipPublicHealthCheck
+.\scripts\deploy-linux.ps1 `
+  -SpringProfilesActive postgres `
+  -DatabaseUrl 'jdbc:postgresql://localhost:5432/vlugboek' `
+  -DatabaseUser vlugboek `
+  -DatabasePassword 'ZeroZippo101@' `
+  -SeedAdmin:$true `
+  -SeedDemoUsers:$false `
+  -SeedPdfImport:$false `
+  -AuthenticatedHealthCheck:$false
+
+.\scripts\deploy-linux.ps1 `
+  -SpringProfilesActive postgres `
+  -DatabaseUrl 'jdbc:postgresql://localhost:5432/vlugboek' `
+  -DatabaseUser vlugboek `
+  -DatabasePassword 'ZeroZippo101@' `
+  -SeedAdmin:$true `
+  -SeedDemoUsers:$false `
+  -SeedPdfImport:$false `
+  -AuthenticatedHealthCheck:$false `
+  -AdminHealthCheck:$true `
+  -HealthAdminEmail admin@vlugboek.local `
+  -HealthAdminPassword admin123</pre>
+
+      <p class="note danger">
+        The script intentionally does not store SSH passwords. Use an SSH key or enter the password when
+        <code>ssh</code>/<code>scp</code> prompts.
+      </p>
+    </section>
+
+    <section id="rollback-linux" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>rollback-linux.ps1</h2>
+          <p>Relinks the Ubuntu server to the previous or named release, restarts Vlugboek, and verifies health.</p>
+        </div>
+        <span class="tag">Deploy</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-Server</code></td>
+            <td>SSH host or IP address.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-User</code></td>
+            <td>SSH username.</td>
+            <td><code>root</code></td>
+          </tr>
+          <tr>
+            <td><code>-RemoteRoot</code></td>
+            <td>Application root on the server.</td>
+            <td><code>/opt/vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-Domain</code></td>
+            <td>Domain to test through nginx after rollback.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-BackendPort</code></td>
+            <td>Local backend port on the server.</td>
+            <td><code>18081</code></td>
+          </tr>
+          <tr>
+            <td><code>-ServiceName</code></td>
+            <td>systemd service name.</td>
+            <td><code>vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-ReleaseName</code></td>
+            <td>Optional release folder name under <code>/opt/vlugboek/releases</code>. When omitted, the <code>previous</code> symlink is used.</td>
+            <td>Previous release</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\rollback-linux.ps1
+.\scripts\rollback-linux.ps1 -ReleaseName vlugboek-20260524-050832</pre>
+
+      <p class="note danger">
+        Rollback changes the live <code>/opt/vlugboek/current</code> symlink and restarts the backend service.
+      </p>
+    </section>
+
+    <section id="deploy-emailer-linux" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>deploy-emailer-linux.ps1</h2>
+          <p>Bundles and deploys the private Vlugboek PDF mailer sidecar to Ubuntu.</p>
+        </div>
+        <span class="tag">Deploy</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-Server</code></td>
+            <td>SSH host or IP address.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-User</code></td>
+            <td>SSH username.</td>
+            <td><code>root</code></td>
+          </tr>
+          <tr>
+            <td><code>-RemoteRoot</code></td>
+            <td>Mailer root on the server.</td>
+            <td><code>/opt/vlugboekmailer</code></td>
+          </tr>
+          <tr>
+            <td><code>-ServiceName</code></td>
+            <td>systemd service name.</td>
+            <td><code>vlugboekmailer</code></td>
+          </tr>
+          <tr>
+            <td><code>-EnvPath</code></td>
+            <td>Local mailer environment file to upload to the server.</td>
+            <td><code>emailer\.env</code></td>
+          </tr>
+          <tr>
+            <td><code>-BundlePath</code></td>
+            <td>Deploy an existing mailer bundle instead of creating a new one.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-ExpectedPort</code></td>
+            <td>Validates that the uploaded mailer env uses the same local port as the backend.</td>
+            <td><code>8788</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\deploy-emailer-linux.ps1
+.\scripts\deploy-emailer-linux.ps1 -EnvPath .\emailer\.env -ExpectedPort 8788</pre>
+
+      <p class="note">
+        Deploy the mailer before the main app so <code>deploy-linux.ps1</code> can read the mailer token
+        from <code>/opt/vlugboekmailer/shared/.env</code> and inject it into the Spring Boot service.
+        The script also refuses to upload placeholder mail settings, a stale mailer port, or a public mailer host.
+        Prefer <code>SMTP_USER</code>/<code>SMTP_PASSWORD</code>; legacy Gmail env names still work.
+      </p>
+    </section>
+
+    <section id="remote-health" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>remote-health.ps1</h2>
+          <p>Runs service, API, mailer, login, and download-page checks on the Ubuntu server.</p>
+        </div>
+        <span class="tag">Deploy</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-Server</code></td>
+            <td>SSH host or IP address.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-User</code></td>
+            <td>SSH username.</td>
+            <td><code>root</code></td>
+          </tr>
+          <tr>
+            <td><code>-Domain</code></td>
+            <td>Domain to test through nginx.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-BackendPort</code></td>
+            <td>Local backend port on the server.</td>
+            <td><code>18081</code></td>
+          </tr>
+          <tr>
+            <td><code>-MailerPort</code></td>
+            <td>Local mailer sidecar port on the server.</td>
+            <td><code>8788</code></td>
+          </tr>
+          <tr>
+            <td><code>-EmailDocumentId</code></td>
+            <td>Optional document id to test through <code>/api/documents/{id}/email</code>. Sends a real email to the login user.</td>
+            <td><code>0</code></td>
+          </tr>
+          <tr>
+            <td><code>-LoginEmail</code></td>
+            <td>Login used for authenticated remote checks.</td>
+            <td><code>demo@vlugboek.local</code></td>
+          </tr>
+          <tr>
+            <td><code>-LoginPassword</code></td>
+            <td>Password used for authenticated remote checks.</td>
+            <td><code>demo123</code></td>
+          </tr>
+          <tr>
+            <td><code>-AdminChecks</code></td>
+            <td>Also validates admin login and admin-only document/organisation endpoints.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-AdminLoginEmail</code>, <code>-AdminLoginPassword</code></td>
+            <td>System-admin credentials used when <code>-AdminChecks</code> is supplied.</td>
+            <td><code>admin@vlugboek.local / admin123</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\remote-health.ps1
+.\scripts\remote-health.ps1 -Server 123.123.123.123
+.\scripts\remote-health.ps1 -AdminChecks -AdminLoginEmail admin@vlugboek.local -AdminLoginPassword admin123
+.\scripts\remote-health.ps1 -EmailDocumentId 3 -LoginEmail you@example.com -LoginPassword your-password</pre>
+    </section>
+
+    <section id="flush-remote-db" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>flush-remote-db.ps1</h2>
+          <p>Flushes remote Vlugboek data while preserving admin users and organisation reference records.</p>
+        </div>
+        <span class="tag">Danger</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-Server</code></td>
+            <td>SSH host or IP address.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-User</code></td>
+            <td>SSH username.</td>
+            <td><code>root</code></td>
+          </tr>
+          <tr>
+            <td><code>-RemoteRoot</code></td>
+            <td>Application root on the remote server.</td>
+            <td><code>/opt/vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-ServiceName</code></td>
+            <td>Systemd service name to stop before flushing and restart afterwards.</td>
+            <td><code>vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-Database</code></td>
+            <td>Database mode. <code>auto</code> reads the remote service environment.</td>
+            <td><code>auto</code></td>
+          </tr>
+          <tr>
+            <td><code>-SpringProfilesActive</code></td>
+            <td>Optional override used when auto-detecting PostgreSQL.</td>
+            <td>Blank</td>
+          </tr>
+          <tr>
+            <td><code>-DatabaseUrl</code>, <code>-DatabaseUser</code>, <code>-DatabasePassword</code></td>
+            <td>Optional database connection overrides. Usually only needed for PostgreSQL if the systemd service does not already have them.</td>
+            <td>Remote service environment</td>
+          </tr>
+          <tr>
+            <td><code>-PreserveAdminEmail</code></td>
+            <td>Require this specific admin email to exist before flushing. Blank preserves all users with role <code>ADMIN</code>.</td>
+            <td>Blank</td>
+          </tr>
+          <tr>
+            <td><code>-SkipBackup</code></td>
+            <td>Skips the remote pre-flush database backup.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-Force</code></td>
+            <td>Skips the local typed confirmation prompt.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\flush-remote-db.ps1
+.\scripts\flush-remote-db.ps1 -PreserveAdminEmail admin@vlugboek.local
+.\scripts\flush-remote-db.ps1 -Database postgres -DatabaseUrl 'jdbc:postgresql://localhost:5432/vlugboek' -DatabaseUser vlugboek -DatabasePassword 'ZeroZippo101@' -Force</pre>
+
+      <p class="note danger">
+        This is a nuclear reset. It deletes reports, datasets, email delivery audits, and non-admin users.
+        It keeps admin users and organisation lookup records. A remote database backup is created unless
+        <code>-SkipBackup</code> is used.
+      </p>
+    </section>
+
+    <section id="sync-android" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>sync-android.ps1</h2>
+          <p>Builds the web app for mobile, adds the Capacitor Android platform if missing, and syncs assets into Android.</p>
+        </div>
+        <span class="tag">Mobile</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-ApiUrl</code></td>
+            <td>API base URL baked into the mobile web build.</td>
+            <td><code>https://vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-SkipWebBuild</code></td>
+            <td>Skips the Vite build and only runs Capacitor add/sync.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\sync-android.ps1
+.\scripts\sync-android.ps1 -ApiUrl https://vlugboek.co.za
+.\scripts\sync-android.ps1 -SkipWebBuild</pre>
+    </section>
+
+    <section id="build-android-debug" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>build-android-debug.ps1</h2>
+          <p>Builds a debug APK and copies it to <code>dist\mobile\vlugboek-debug.apk</code>.</p>
+        </div>
+        <span class="tag">Mobile</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-ApiUrl</code></td>
+            <td>API base URL used when building web assets before the APK.</td>
+            <td><code>https://vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-SkipWebBuild</code></td>
+            <td>Skips the Vite build during sync.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipSync</code></td>
+            <td>Skips Capacitor sync and only runs Gradle.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\build-android-debug.ps1
+.\scripts\build-android-debug.ps1 -SkipWebBuild
+.\scripts\build-android-debug.ps1 -SkipSync</pre>
+    </section>
+
+    <section id="build-android-release" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>build-android-release.ps1</h2>
+          <p>Builds a release APK. If signing values are supplied, it creates a signed release APK.</p>
+        </div>
+        <span class="tag">Mobile</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-ApiUrl</code></td>
+            <td>API base URL used when building web assets before the APK.</td>
+            <td><code>https://vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-SkipWebBuild</code></td>
+            <td>Skips the Vite build during sync.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipSync</code></td>
+            <td>Skips Capacitor sync and only runs Gradle.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-KeystorePath</code></td>
+            <td>Path to the release signing keystore. Can also use <code>VLUGBOEK_ANDROID_KEYSTORE</code>.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-KeyAlias</code></td>
+            <td>Signing key alias. Can also use <code>VLUGBOEK_ANDROID_KEY_ALIAS</code>.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-KeystorePassword</code></td>
+            <td>Keystore password. Can also use <code>VLUGBOEK_ANDROID_KEYSTORE_PASSWORD</code>.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-KeyPassword</code></td>
+            <td>Key password. Can also use <code>VLUGBOEK_ANDROID_KEY_PASSWORD</code>.</td>
+            <td>None</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\build-android-release.ps1
+.\scripts\build-android-release.ps1 -KeystorePath .\mobile-keystores\vlugboek-release.jks -KeyAlias vlugboek</pre>
+
+      <p class="note">
+        Release signing passwords should be passed via environment variables or a secure prompt flow, not committed to source.
+      </p>
+    </section>
+
+    <section id="generate-icons" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>generate-icons.ps1</h2>
+          <p>Derives the Vlugboek web favicon, PWA icons, and Android launcher icons from the hero pigeon image.</p>
+        </div>
+        <span class="tag">Assets</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-SourceImage</code></td>
+            <td>Source image used for icon generation.</td>
+            <td><code>frontend\src\assets\hero-pigeon.png</code></td>
+          </tr>
+          <tr>
+            <td><code>-CropX</code></td>
+            <td>Left edge of the square crop inside the source image.</td>
+            <td><code>830</code></td>
+          </tr>
+          <tr>
+            <td><code>-CropY</code></td>
+            <td>Top edge of the square crop inside the source image.</td>
+            <td><code>85</code></td>
+          </tr>
+          <tr>
+            <td><code>-CropSize</code></td>
+            <td>Size of the square crop before resizing into icon outputs.</td>
+            <td><code>700</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\generate-icons.ps1
+.\scripts\generate-icons.ps1 -CropX 830 -CropY 85 -CropSize 700</pre>
+
+      <p class="note ok">
+        Outputs are written to <code>frontend\public</code> and
+        <code>frontend\android\app\src\main\res\mipmap-*</code>.
+      </p>
+    </section>
+
+    <section id="deploy-mobile-client" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>deploy-mobile-client.ps1</h2>
+          <p>Builds or publishes an Android APK to the server and exposes it at <code>/downloads/</code>.</p>
+        </div>
+        <span class="tag">Mobile</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-BuildType</code></td>
+            <td>APK type to build when <code>-ApkPath</code> is not supplied. Valid values are <code>debug</code> and <code>release</code>.</td>
+            <td><code>release</code></td>
+          </tr>
+          <tr>
+            <td><code>-ApkPath</code></td>
+            <td>Publishes an existing APK instead of building one.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-ApkFileName</code></td>
+            <td>Optional public file name for the APK. Must end in <code>.apk</code>.</td>
+            <td>Existing APK file name</td>
+          </tr>
+          <tr>
+            <td><code>-Server</code></td>
+            <td>SSH host or IP address.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-User</code></td>
+            <td>SSH username.</td>
+            <td><code>root</code></td>
+          </tr>
+          <tr>
+            <td><code>-RemoteRoot</code></td>
+            <td>Application root on the server.</td>
+            <td><code>/opt/vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-Domain</code></td>
+            <td>Public domain used for the generated download links and checks.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-ApiUrl</code></td>
+            <td>API base URL baked into the mobile build when building an APK.</td>
+            <td><code>https://vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-PublicDownloadsPath</code></td>
+            <td>Public site path that hosts the generated download page and APK.</td>
+            <td><code>/downloads</code></td>
+          </tr>
+          <tr>
+            <td><code>-SkipBuild</code></td>
+            <td>Uses the existing APK in <code>dist\mobile</code> for the selected build type.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipWebBuild</code></td>
+            <td>Passes through to the Android build script.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipSync</code></td>
+            <td>Passes through to the Android build script.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-AllowUnsignedRelease</code></td>
+            <td>Allows release deployment without signing values. Use only for test APKs.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipPublicCheck</code></td>
+            <td>Skips local public HTTPS checks after the remote checks pass.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-KeystorePath</code></td>
+            <td>Release signing keystore path. Can also use <code>VLUGBOEK_ANDROID_KEYSTORE</code>.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-KeyAlias</code></td>
+            <td>Release signing key alias. Can also use <code>VLUGBOEK_ANDROID_KEY_ALIAS</code>.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-KeystorePassword</code></td>
+            <td>Release signing keystore password. Can also use <code>VLUGBOEK_ANDROID_KEYSTORE_PASSWORD</code>.</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td><code>-KeyPassword</code></td>
+            <td>Release signing key password. Can also use <code>VLUGBOEK_ANDROID_KEY_PASSWORD</code>.</td>
+            <td>None</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\deploy-mobile-client.ps1 -BuildType debug
+.\scripts\deploy-mobile-client.ps1 -BuildType release
+.\scripts\deploy-mobile-client.ps1 -ApkPath .\dist\mobile\vlugboek-debug.apk</pre>
+
+      <p class="note ok">
+        The remote files are stored in <code>/opt/vlugboek/shared/downloads</code> and are available at
+        <code>https://vlugboek.co.za/downloads/</code>.
+      </p>
+    </section>
+
+    <section id="save-mobile-signing-secret" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>save-mobile-signing-secret.ps1</h2>
+          <p>Saves Android release signing settings as an encrypted local secret for the current Windows user.</p>
+        </div>
+        <span class="tag">Mobile</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-KeystorePath</code></td>
+            <td>Path to the release signing keystore.</td>
+            <td><code>C:\Development\Vlugboek\vlugboekkeystore</code></td>
+          </tr>
+          <tr>
+            <td><code>-KeyAlias</code></td>
+            <td>Signing key alias.</td>
+            <td><code>key0</code></td>
+          </tr>
+          <tr>
+            <td><code>-UseSamePassword</code></td>
+            <td>Prompts once and uses the same password for the keystore and key.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\save-mobile-signing-secret.ps1 -UseSamePassword</pre>
+
+      <p class="note">
+        Output is written to <code>scripts\.secrets\mobile-signing.clixml</code>, which is ignored by source control.
+        The script validates the alias with <code>keytool</code> and uses the only alias in the keystore when there is a mismatch.
+      </p>
+    </section>
+
+    <section id="create-android-keystore" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>create-android-keystore.ps1</h2>
+          <p>Creates a Java keystore for signing release APKs.</p>
+        </div>
+        <span class="tag">Mobile</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-KeystorePath</code></td>
+            <td>Destination keystore path.</td>
+            <td><code>mobile-keystores\vlugboek-release.jks</code></td>
+          </tr>
+          <tr>
+            <td><code>-Alias</code></td>
+            <td>Key alias.</td>
+            <td><code>vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-DistinguishedName</code></td>
+            <td>Certificate identity string.</td>
+            <td>Vlugboek Pretoria/Gauteng/ZA</td>
+          </tr>
+          <tr>
+            <td><code>-ValidityDays</code></td>
+            <td>Signing key validity period.</td>
+            <td><code>10000</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\create-android-keystore.ps1</pre>
+    </section>
+
+    <section id="run-backend" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>run-backend.cmd</h2>
+          <p>Lower-level helper used by <code>start-local.ps1</code> to run the packaged backend jar.</p>
+        </div>
+        <span class="tag">Helper</span>
+      </div>
+
+      <p>No parameters. It writes backend output to <code>logs\backend.log</code> and <code>logs\backend.err</code>.</p>
+      <pre>.\scripts\run-backend.cmd</pre>
+    </section>
+
+    <section id="run-frontend" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>run-frontend.cmd</h2>
+          <p>Lower-level helper used by <code>start-local.ps1</code> to run the Vite dev server.</p>
+        </div>
+        <span class="tag">Helper</span>
+      </div>
+
+      <p>No parameters. It writes frontend output to <code>logs\frontend.log</code> and <code>logs\frontend.err</code>.</p>
+      <pre>.\scripts\run-frontend.cmd</pre>
+    </section>
+
+    <section id="run-emailer" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>run-emailer.cmd</h2>
+          <p>Lower-level helper used by <code>start-local.ps1</code> to run the private PDF mailer sidecar.</p>
+        </div>
+        <span class="tag">Helper</span>
+      </div>
+
+      <p>No parameters. It installs local mailer dependencies when missing, then writes output to <code>logs\emailer.log</code> and <code>logs\emailer.err</code>.</p>
+      <pre>.\scripts\run-emailer.cmd</pre>
+    </section>
+
+    <section id="install-emailer" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>linux/install-emailer.sh</h2>
+          <p>Remote Ubuntu installer uploaded and executed by <code>deploy-emailer-linux.ps1</code>.</p>
+        </div>
+        <span class="tag">Remote</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Input</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Argument 1</code></td>
+            <td>Path to the uploaded mailer bundle on the server.</td>
+            <td>Required</td>
+          </tr>
+          <tr>
+            <td><code>Argument 2</code></td>
+            <td>Release name used under <code>/opt/vlugboekmailer/releases</code>.</td>
+            <td>Current timestamp</td>
+          </tr>
+          <tr>
+            <td><code>MAILER_ROOT</code></td>
+            <td>Root deployment directory.</td>
+            <td><code>/opt/vlugboekmailer</code></td>
+          </tr>
+          <tr>
+            <td><code>SERVICE_NAME</code></td>
+            <td>systemd service name.</td>
+            <td><code>vlugboekmailer</code></td>
+          </tr>
+          <tr>
+            <td><code>MAILER_EXPECTED_PORT</code></td>
+            <td>Remote guard that verifies the uploaded mailer env matches the backend mailer URL.</td>
+            <td><code>8788</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>MAILER_ROOT=/opt/vlugboekmailer SERVICE_NAME=vlugboekmailer MAILER_EXPECTED_PORT=8788 \
+bash install-emailer.sh /opt/vlugboekmailer/incoming/vlugboekmailer-release.tar.gz vlugboekmailer-release</pre>
+    </section>
+
+    <section id="install-update" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>linux/install-or-update.sh</h2>
+          <p>Remote Ubuntu installer uploaded and executed by <code>deploy-linux.ps1</code>.</p>
+        </div>
+        <span class="tag">Remote</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Input</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Argument 1</code></td>
+            <td>Path to the uploaded release bundle on the server.</td>
+            <td>Required</td>
+          </tr>
+          <tr>
+            <td><code>Argument 2</code></td>
+            <td>Release name used under <code>/opt/vlugboek/releases</code>.</td>
+            <td>Current timestamp</td>
+          </tr>
+          <tr>
+            <td><code>APP_ROOT</code></td>
+            <td>Root deployment directory.</td>
+            <td><code>/opt/vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>DOMAIN</code></td>
+            <td>nginx domain name.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>BACKEND_PORT</code></td>
+            <td>Spring Boot API port behind nginx.</td>
+            <td><code>18081</code></td>
+          </tr>
+          <tr>
+            <td><code>SERVICE_NAME</code></td>
+            <td>systemd service name.</td>
+            <td><code>vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>MAILER_ROOT</code></td>
+            <td>Private PDF mailer root used to discover the shared mailer token.</td>
+            <td><code>/opt/vlugboekmailer</code></td>
+          </tr>
+          <tr>
+            <td><code>MAILER_URL</code></td>
+            <td>Local sidecar endpoint used by the Email PDF API.</td>
+            <td><code>http://127.0.0.1:8788/send-document</code></td>
+          </tr>
+          <tr>
+            <td><code>MAILER_TOKEN</code></td>
+            <td>Optional explicit token for the sidecar. When omitted, the installer reads <code>MAIL_WEBHOOK_TOKEN</code> from the mailer env file.</td>
+            <td>From mailer env</td>
+          </tr>
+          <tr>
+            <td><code>AUTH_HEALTH_CHECK</code></td>
+            <td>Runs login and authenticated dashboard checks after the service starts.</td>
+            <td><code>true</code></td>
+          </tr>
+          <tr>
+            <td><code>ADMIN_HEALTH_CHECK</code></td>
+            <td>Runs system-admin login plus admin-only endpoint checks after the service starts.</td>
+            <td><code>false</code></td>
+          </tr>
+          <tr>
+            <td><code>ROLLBACK_ON_FAILURE</code></td>
+            <td>Relinks the previous release if a post-switch deploy check fails.</td>
+            <td><code>true</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>APP_ROOT=/opt/vlugboek DOMAIN=vlugboek.co.za BACKEND_PORT=18081 \
+bash install-or-update.sh /opt/vlugboek/incoming/vlugboek-release.tar.gz vlugboek-release</pre>
+
+      <p class="note">
+        The remote installer creates <code>/opt/vlugboek/releases</code>, <code>/opt/vlugboek/current</code>,
+        <code>/opt/vlugboek/shared</code>, the <code>vlugboek</code> systemd service, and the nginx site file.
+        It also exposes <code>/opt/vlugboek/shared/downloads</code> at <code>/downloads/</code>.
+      </p>
+    </section>
+
+    <footer>
+      Last updated for PR-09 release and observability tooling. Add new scripts here as they arrive.
+    </footer>
+  </main>
+</body>
+</html>

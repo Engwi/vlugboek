@@ -1,0 +1,11 @@
+Deploy to linux with DB Push
+-----------------------------
+.\scripts\deploy-linux.ps1 `
+  -SpringProfilesActive postgres `
+  -DatabaseUrl 'jdbc:postgresql://localhost:5432/vlugboek' `
+  -DatabaseUser vlugboek `
+  -DatabasePassword 'ZeroZippo101@' `
+  -SeedAdmin:$true `
+  -SeedDemoUsers:$false `
+  -SeedPdfImport:$false `
+  -AuthenticatedHealthCheck:$false

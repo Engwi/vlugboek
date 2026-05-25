@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #0b1623;
+  background: #f8f6f1;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
+  background: #f8f6f1;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  background:
+    linear-gradient(180deg, rgba(248, 246, 241, 0.96) 0%, rgba(242, 239, 232, 1) 100%);
+}
+
+#root {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.hero-image-mask {
+  mask-image: linear-gradient(90deg, transparent 0%, black 20%, black 100%);
+}
+
+.result-scroll {
+  scrollbar-color: #c79a47 #f2efe8;
+}
+
+.result-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.result-scroll::-webkit-scrollbar-track {
+  background: #f2efe8;
+}
+
+.result-scroll::-webkit-scrollbar-thumb {
+  background: #c79a47;
+  border-radius: 999px;
+}
+
+@media (max-width: 720px) {
+  .hero-image-mask {
+    mask-image: linear-gradient(180deg, black 0%, black 72%, transparent 100%);
+  }
+}
