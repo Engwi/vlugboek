@@ -12,4 +12,4 @@ Deploy to linux with DB Push
   
 Nice Mobile Build Run
 ---------------------- 
-.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 0.0.1-pr10 -VersionCode 25010
+.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 0.0.2-pr10 -VersionCode 25011
