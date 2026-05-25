@@ -89,6 +89,8 @@ Status: complete for MVP release safety and diagnostics.
 
 ## PR-10 Mobile Release Polish
 
+Status: complete for MVP mobile release packaging.
+
 - Version APK builds.
 - Keep API URL, icons, signing, and download page reproducible.
 - Add a smoke check for installed mobile web assets.

@@ -53,11 +53,15 @@ function Resolve-MobileSigning {
 
     $secretFile = Join-Path $PSScriptRoot '.secrets\mobile-signing.clixml'
     if (Test-Path -LiteralPath $secretFile) {
-        $secret = Import-Clixml -LiteralPath $secretFile
-        if (-not $Path) { $Path = $secret.KeystorePath }
-        if (-not $Alias) { $Alias = $secret.KeyAlias }
-        if (-not $StorePassword) { $StorePassword = ConvertFrom-SecureStringForProcess $secret.KeystorePassword }
-        if (-not $SigningPassword) { $SigningPassword = ConvertFrom-SecureStringForProcess $secret.KeyPassword }
+        try {
+            $secret = Import-Clixml -LiteralPath $secretFile
+            if (-not $Path) { $Path = $secret.KeystorePath }
+            if (-not $Alias) { $Alias = $secret.KeyAlias }
+            if (-not $StorePassword) { $StorePassword = ConvertFrom-SecureStringForProcess $secret.KeystorePassword }
+            if (-not $SigningPassword) { $SigningPassword = ConvertFrom-SecureStringForProcess $secret.KeyPassword }
+        } catch {
+            Write-Warning "Could not read encrypted mobile signing secret at $secretFile. Falling back to parameters and environment variables."
+        }
     }
 
     if (-not $Path) { $Path = $env:VLUGBOEK_ANDROID_KEYSTORE }

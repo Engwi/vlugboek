@@ -77,7 +77,7 @@ if ($ApiUrl) {
     $jsFiles = Get-ChildItem -LiteralPath (Join-Path $AndroidAssetsDir 'assets') -Filter '*.js' -ErrorAction SilentlyContinue
     $apiUrlFound = $false
     foreach ($js in $jsFiles) {
-        if ((Get-Content -LiteralPath $js.FullName -Raw) -like "*$ApiUrl*") {
+        if ((Get-Content -LiteralPath $js.FullName -Raw).Contains($ApiUrl)) {
             $apiUrlFound = $true
             break
         }

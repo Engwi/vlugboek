@@ -312,6 +312,7 @@
         <div>
           <h3>Android APKs</h3>
           <pre>.\scripts\sync-android.ps1
+.\scripts\smoke-mobile-assets.ps1
 .\scripts\save-mobile-signing-secret.ps1 -UseSamePassword
 .\scripts\build-android-debug.ps1
 .\scripts\build-android-release.ps1
@@ -340,6 +341,7 @@
         <a href="#remote-health">remote-health.ps1</a>
         <a href="#flush-remote-db">flush-remote-db.ps1</a>
         <a href="#sync-android">sync-android.ps1</a>
+        <a href="#smoke-mobile-assets">smoke-mobile-assets.ps1</a>
         <a href="#build-android-debug">build-android-debug.ps1</a>
         <a href="#build-android-release">build-android-release.ps1</a>
         <a href="#deploy-mobile-client">deploy-mobile-client.ps1</a>
@@ -910,8 +912,23 @@
             <td><code>https://vlugboek.co.za</code></td>
           </tr>
           <tr>
+            <td><code>-BuildType</code></td>
+            <td>Build label written into the packaged <code>mobile-build.json</code> metadata.</td>
+            <td><code>web</code></td>
+          </tr>
+          <tr>
+            <td><code>-VersionName</code>, <code>-VersionCode</code></td>
+            <td>Android version values stamped into the mobile web metadata. Defaults are generated when omitted.</td>
+            <td>Generated</td>
+          </tr>
+          <tr>
             <td><code>-SkipWebBuild</code></td>
             <td>Skips the Vite build and only runs Capacitor add/sync.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipSmokeCheck</code></td>
+            <td>Skips validation of the packaged Capacitor web assets after sync.</td>
             <td>Off</td>
           </tr>
         </tbody>
@@ -919,7 +936,44 @@
 
       <pre>.\scripts\sync-android.ps1
 .\scripts\sync-android.ps1 -ApiUrl https://vlugboek.co.za
+.\scripts\sync-android.ps1 -BuildType release -VersionName 1.0.0 -VersionCode 25001
 .\scripts\sync-android.ps1 -SkipWebBuild</pre>
+    </section>
+
+    <section id="smoke-mobile-assets" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>smoke-mobile-assets.ps1</h2>
+          <p>Validates the web assets that Capacitor packages into the Android app.</p>
+        </div>
+        <span class="tag">Mobile</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-ApiUrl</code></td>
+            <td>Optional API URL expected in <code>mobile-build.json</code> and the packaged JavaScript bundle.</td>
+            <td>Blank</td>
+          </tr>
+          <tr>
+            <td><code>-BuildType</code>, <code>-VersionName</code>, <code>-VersionCode</code></td>
+            <td>Optional metadata values to assert against <code>mobile-build.json</code>.</td>
+            <td>Blank</td>
+          </tr>
+          <tr>
+            <td><code>-AndroidAssetsDir</code></td>
+            <td>Alternative Capacitor public asset directory to inspect.</td>
+            <td><code>frontend\android\app\src\main\assets\public</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\smoke-mobile-assets.ps1
+.\scripts\smoke-mobile-assets.ps1 -ApiUrl https://vlugboek.co.za -BuildType release</pre>
     </section>
 
     <section id="build-android-debug" class="card script-card">
@@ -942,6 +996,11 @@
             <td><code>https://vlugboek.co.za</code></td>
           </tr>
           <tr>
+            <td><code>-VersionName</code>, <code>-VersionCode</code></td>
+            <td>Android version values passed to Gradle and written into APK metadata. Defaults are generated when omitted.</td>
+            <td>Generated</td>
+          </tr>
+          <tr>
             <td><code>-SkipWebBuild</code></td>
             <td>Skips the Vite build during sync.</td>
             <td>Off</td>
@@ -951,10 +1010,16 @@
             <td>Skips Capacitor sync and only runs Gradle.</td>
             <td>Off</td>
           </tr>
+          <tr>
+            <td><code>-SkipSmokeCheck</code></td>
+            <td>Skips validation of the packaged Capacitor web assets during sync.</td>
+            <td>Off</td>
+          </tr>
         </tbody>
       </table>
 
       <pre>.\scripts\build-android-debug.ps1
+.\scripts\build-android-debug.ps1 -VersionName 1.0.0 -VersionCode 25001
 .\scripts\build-android-debug.ps1 -SkipWebBuild
 .\scripts\build-android-debug.ps1 -SkipSync</pre>
     </section>
@@ -979,6 +1044,11 @@
             <td><code>https://vlugboek.co.za</code></td>
           </tr>
           <tr>
+            <td><code>-VersionName</code>, <code>-VersionCode</code></td>
+            <td>Android version values passed to Gradle and written into APK metadata. Defaults are generated when omitted.</td>
+            <td>Generated</td>
+          </tr>
+          <tr>
             <td><code>-SkipWebBuild</code></td>
             <td>Skips the Vite build during sync.</td>
             <td>Off</td>
@@ -986,6 +1056,11 @@
           <tr>
             <td><code>-SkipSync</code></td>
             <td>Skips Capacitor sync and only runs Gradle.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipSmokeCheck</code></td>
+            <td>Skips validation of the packaged Capacitor web assets during sync.</td>
             <td>Off</td>
           </tr>
           <tr>
@@ -1012,6 +1087,7 @@
       </table>
 
       <pre>.\scripts\build-android-release.ps1
+.\scripts\build-android-release.ps1 -VersionName 1.0.0 -VersionCode 25001
 .\scripts\build-android-release.ps1 -KeystorePath .\mobile-keystores\vlugboek-release.jks -KeyAlias vlugboek</pre>
 
       <p class="note">
@@ -1120,6 +1196,11 @@
             <td><code>https://vlugboek.co.za</code></td>
           </tr>
           <tr>
+            <td><code>-VersionName</code>, <code>-VersionCode</code></td>
+            <td>Android version values used when building an APK. They are also displayed on the public download page.</td>
+            <td>Generated</td>
+          </tr>
+          <tr>
             <td><code>-PublicDownloadsPath</code></td>
             <td>Public site path that hosts the generated download page and APK.</td>
             <td><code>/downloads</code></td>
@@ -1137,6 +1218,11 @@
           <tr>
             <td><code>-SkipSync</code></td>
             <td>Passes through to the Android build script.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-SkipSmokeCheck</code></td>
+            <td>Passes through to the Android build script and skips packaged asset validation.</td>
             <td>Off</td>
           </tr>
           <tr>
@@ -1174,11 +1260,13 @@
 
       <pre>.\scripts\deploy-mobile-client.ps1 -BuildType debug
 .\scripts\deploy-mobile-client.ps1 -BuildType release
+.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 1.0.0 -VersionCode 25001
 .\scripts\deploy-mobile-client.ps1 -ApkPath .\dist\mobile\vlugboek-debug.apk</pre>
 
       <p class="note ok">
         The remote files are stored in <code>/opt/vlugboek/shared/downloads</code> and are available at
-        <code>https://vlugboek.co.za/downloads/</code>.
+        <code>https://vlugboek.co.za/downloads/</code>. The public metadata file is
+        <code>https://vlugboek.co.za/downloads/mobile-build.json</code>.
       </p>
     </section>
 
