@@ -15,12 +15,18 @@ if (-not (Test-Path ".git")) {
     exit 1
 }
 
-Write-Host "Checking repository status..." -ForegroundColor Yellow
-git status
-
-Write-Host ""
 Write-Host "Staging all changes..." -ForegroundColor Yellow
 git add .
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "Failed to stage files." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host ""
+Write-Host "Files staged for commit:" -ForegroundColor Yellow
+git status --short
 
 Write-Host ""
 Write-Host "Creating commit..." -ForegroundColor Yellow
