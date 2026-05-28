@@ -78,6 +78,15 @@ const payloadSchema = z.object({
   meta: z.record(z.any()).optional()
 });
 
+const messagePayloadSchema = z.object({
+  to: z.string().email(),
+  subject: z.string().min(1).max(200),
+  text: z.string().min(1).max(20000),
+  html: z.string().min(1).max(50000).optional(),
+  requestId: z.string().min(1).max(120).optional(),
+  meta: z.record(z.any()).optional()
+});
+
 function safeEqual(a, b) {
   const ab = Buffer.from(a || "");
   const bb = Buffer.from(b || "");
@@ -167,6 +176,48 @@ app.post("/send-document", requireAuth, async (req, res) => {
     const status = err.status || 502;
     const detail = err.code ? `${err.code}: ${err.message}` : err.message;
     console.error("send-document failed:", {
+      requestId,
+      status,
+      message: err.message,
+      code: err.code,
+      meta: data.meta
+    });
+    return res.status(status).json({
+      error: status === 403 ? err.message : "Mail provider send failed",
+      detail
+    });
+  }
+});
+
+app.post("/send-message", requireAuth, async (req, res) => {
+  const parsed = messagePayloadSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+  }
+
+  const data = parsed.data;
+  const requestId = requestIdFor(req, data);
+
+  try {
+    assertAllowedRecipient(data.to);
+
+    const info = await transporter.sendMail({
+      from: `"${MAIL_FROM_NAME}" <${FROM_ADDRESS}>`,
+      to: data.to,
+      subject: data.subject,
+      text: data.text,
+      html: data.html,
+      headers: {
+        "X-Vlugboek-Source": "message-email",
+        "X-Vlugboek-Request-Id": requestId
+      }
+    });
+
+    return res.status(200).json({ ok: true, messageId: info.messageId, requestId });
+  } catch (err) {
+    const status = err.status || 502;
+    const detail = err.code ? `${err.code}: ${err.message}` : err.message;
+    console.error("send-message failed:", {
       requestId,
       status,
       message: err.message,

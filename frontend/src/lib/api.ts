@@ -157,9 +157,21 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload)
   }),
+  requestPasswordReset: (payload: { email: string; language: string }) => request<{ message: string }>('/api/auth/password-reset/request', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  confirmPasswordReset: (payload: { email: string; token: string; password: string; language: string }) => request<AuthResponse>('/api/auth/password-reset/confirm', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
   updateLanguage: (language: string) => request<AuthResponse>('/api/profile/language', {
     method: 'POST',
     body: JSON.stringify({ language })
+  }),
+  changePassword: (payload: { currentPassword: string; newPassword: string }) => request<AuthResponse>('/api/profile/password', {
+    method: 'POST',
+    body: JSON.stringify(payload)
   }),
   upload: async (file: File) => {
     const form = new FormData();

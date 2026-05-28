@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -63,6 +64,30 @@ class SecuritySmokeTest {
                         .file(file)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DirtiesContext
+    void usersCanChangeTheirPassword() throws Exception {
+        String token = login("demo@vlugboek.local", "demo123");
+
+        mvc.perform(post("/api/profile/password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"demo123","newPassword":"new-demo-123"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty());
+
+        mvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"demo@vlugboek.local","password":"demo123","language":"en"}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        login("demo@vlugboek.local", "new-demo-123");
     }
 
     @Test
@@ -125,6 +150,30 @@ class SecuritySmokeTest {
                 .andExpect(jsonPath("$[?(@.id == " + documentId + ")]").isEmpty());
     }
 
+    @Test
+    void duplicatePdfUploadsAreRejectedByContentHash() throws Exception {
+        String adminToken = login("admin@vlugboek.local", "admin123");
+        Path path = Path.of("Docs", "Uitslae", "# 3 Wedvlugte", "Christiana1JO.pdf");
+
+        MvcResult upload = mvc.perform(multipart("/api/documents/upload")
+                        .file(pdfFixture(path, "Christiana1JO.pdf"))
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        long documentId = objectMapper.readTree(upload.getResponse().getContentAsString())
+                .get("document")
+                .get("id")
+                .asLong();
+
+        mvc.perform(multipart("/api/documents/upload")
+                        .file(pdfFixture(path, "renamed-christiana.pdf"))
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.documentId").value(documentId))
+                .andExpect(jsonPath("$.documentTitle").value("Christiana 1 JO"));
+    }
+
     private String login(String email, String password) throws Exception {
         String body = """
                 {"email":"%s","password":"%s","language":"en"}
@@ -141,9 +190,13 @@ class SecuritySmokeTest {
 
     private MockMultipartFile pdfFixture() throws Exception {
         Path path = Path.of("Docs", "Uitslae", "# 3 Wedvlugte", "Britstown1OPE.pdf");
+        return pdfFixture(path, "Britstown1OPE.pdf");
+    }
+
+    private MockMultipartFile pdfFixture(Path path, String filename) throws Exception {
         return new MockMultipartFile(
                 "file",
-                "Britstown1OPE.pdf",
+                filename,
                 "application/pdf",
                 Files.readAllBytes(path)
         );

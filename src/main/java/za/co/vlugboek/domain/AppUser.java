@@ -55,6 +55,10 @@ public class AppUser {
 
     private String sessionToken;
 
+    private String passwordResetTokenHash;
+
+    private Instant passwordResetExpiresAt;
+
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -135,6 +139,24 @@ public class AppUser {
 
     public void setSessionToken(String sessionToken) {
         this.sessionToken = sessionToken;
+    }
+
+    public String getPasswordResetTokenHash() {
+        return passwordResetTokenHash;
+    }
+
+    public Instant getPasswordResetExpiresAt() {
+        return passwordResetExpiresAt;
+    }
+
+    public void assignPasswordReset(String tokenHash, Instant expiresAt) {
+        this.passwordResetTokenHash = tokenHash;
+        this.passwordResetExpiresAt = expiresAt;
+    }
+
+    public void clearPasswordReset() {
+        this.passwordResetTokenHash = null;
+        this.passwordResetExpiresAt = null;
     }
 
     public void setLanguage(String language) {

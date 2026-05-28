@@ -34,6 +34,7 @@ spring:
       max-request-size: 30MB
 
 vlugboek:
+  public-url: ${VLUGBOEK_PUBLIC_URL:http://localhost:5173}
   storage:
     uploads-dir: ${VLUGBOEK_UPLOADS_DIR:data/uploads}
   seed:

@@ -10,6 +10,52 @@ Deploy to linux with DB Push
   -SeedPdfImport:$false `
   -AuthenticatedHealthCheck:$false
   
-Nice Mobile Build Run
----------------------- 
-.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 0.0.2-pr10 -VersionCode 25011
+Nice Mobile Build Run AND DEPLOY
+---------------------------------
+.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 0.2.0-pr11 -VersionCode 25013
+
+
+Polish for RC 1 List
+--------------------
+(5)	IOS PWA Test in Safari (and make it "ready" for such an env - it seems there are 'matters' to consider
+
+Security
+---------
+(1) Security Harden (at least Mozilla Observatory)
+
+
+
+Ops
+----
+(1) Create a UAT Environment 
+(2) Backups in place ! (Daily Job)
+(3) Server Monitoring in place.
+
+Go Live
+--------
+(10) Make Available to the selected couple of people (email addresses to be white listed.
+
+Sys Admin is
+-------------
+admin@vlugboek.local / admin123
+
+
+Possible Enhancements
+---------------------
+(11) Signout does not clear credentials.
+
+
+Old Polish List
+---------------
+>>(1) Remove these from the login screen
+>>    Demo: demo@vlugboek.local / demo123
+>>   Admin: admin@vlugboek.local / admin123
+>>(2) Remove Button "Gaan Voort as demo" / "Continue as demo" (On both sign in and register)
+>>(3) Icon on Mobile client still too big - Pigeon head is cut off out of view.	
+>>(4) Eye Show password option on the password field.
+>>(5) Flush - there are still users (over and above admin) - a federation admin and a collection of clubs with people liniked to them.
+>>    Make the flush ONLY leave admin - no federations, no clubs, no lofts no users BUT admin - clean slate.
+>>(1) No password change option
+>>(2) No password reset option
+>>(4) Tabel en Kaarte / Trable and Cards - Make TABEL / TABLE the defaul when ever results are selected 
+>>(3) Double uploads allowed it seems.. stop that.

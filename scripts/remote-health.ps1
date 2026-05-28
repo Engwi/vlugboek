@@ -7,8 +7,8 @@ param(
     [int]$BackendPort = 18081,
     [int]$MailerPort = 8788,
     [int]$EmailDocumentId = 0,
-    [string]$LoginEmail = 'demo@vlugboek.local',
-    [string]$LoginPassword = 'demo123',
+    [string]$LoginEmail = 'admin@vlugboek.local',
+    [string]$LoginPassword = 'admin123',
     [switch]$AdminChecks,
     [string]$AdminLoginEmail = 'admin@vlugboek.local',
     [string]$AdminLoginPassword = 'admin123'

@@ -1,11 +1,21 @@
 package za.co.vlugboek.service;
 
 import jakarta.transaction.Transactional;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import za.co.vlugboek.api.dto.AuthRequest;
+import za.co.vlugboek.api.dto.ChangePasswordRequest;
+import za.co.vlugboek.api.dto.PasswordResetConfirmRequest;
+import za.co.vlugboek.api.dto.PasswordResetRequest;
 import za.co.vlugboek.domain.AppUser;
 import za.co.vlugboek.domain.Club;
 import za.co.vlugboek.domain.Federation;
@@ -19,21 +29,26 @@ import za.co.vlugboek.repo.LoftRepository;
 @Service
 public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+    private static final Duration PASSWORD_RESET_TTL = Duration.ofMinutes(30);
 
     private final AppUserRepository users;
     private final FederationRepository federations;
     private final ClubRepository clubs;
     private final LoftRepository lofts;
     private final PasswordService passwordService;
+    private final PasswordResetEmailService passwordResetEmailService;
     private final StructuredLogService structuredLogs;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(AppUserRepository users, FederationRepository federations, ClubRepository clubs,
-                       LoftRepository lofts, PasswordService passwordService, StructuredLogService structuredLogs) {
+                       LoftRepository lofts, PasswordService passwordService,
+                       PasswordResetEmailService passwordResetEmailService, StructuredLogService structuredLogs) {
         this.users = users;
         this.federations = federations;
         this.clubs = clubs;
         this.lofts = lofts;
         this.passwordService = passwordService;
+        this.passwordResetEmailService = passwordResetEmailService;
         this.structuredLogs = structuredLogs;
     }
 
@@ -99,8 +114,88 @@ public class AuthService {
         return user;
     }
 
+    @Transactional
+    public AppUser changePassword(Long userId, ChangePasswordRequest request) {
+        AppUser user = users.findById(userId).orElseThrow();
+        if (!user.isRegistered()) {
+            throw new IllegalArgumentException("Please register before changing your password");
+        }
+        if (!passwordService.matches(user.getEmail(), request.currentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        user.setPasswordHash(passwordService.hash(user.getEmail(), request.newPassword()));
+        user.clearPasswordReset();
+        user.setSessionToken(UUID.randomUUID().toString());
+        structuredLogs.info(log, "auth.password_changed", structuredLogs.fields(
+                "userId", user.getId(),
+                "email", user.getEmail()
+        ));
+        return user;
+    }
+
+    @Transactional
+    public void requestPasswordReset(PasswordResetRequest request) {
+        String email = request.email().trim().toLowerCase();
+        users.findByEmailIgnoreCase(email)
+                .filter(AppUser::isRegistered)
+                .ifPresent(user -> {
+                    String token = secureToken();
+                    user.assignPasswordReset(tokenHash(token), Instant.now().plus(PASSWORD_RESET_TTL));
+                    passwordResetEmailService.sendResetLink(user, token, normaliseLanguage(request.language()));
+                    structuredLogs.info(log, "auth.password_reset_requested", structuredLogs.fields(
+                            "userId", user.getId(),
+                            "email", user.getEmail()
+                    ));
+                });
+    }
+
+    @Transactional
+    public AppUser confirmPasswordReset(PasswordResetConfirmRequest request) {
+        String email = request.email().trim().toLowerCase();
+        AppUser user = users.findByEmailIgnoreCase(email)
+                .filter(AppUser::isRegistered)
+                .orElseThrow(() -> new IllegalArgumentException("Password reset link is invalid or expired"));
+        String expectedHash = user.getPasswordResetTokenHash();
+        Instant expiresAt = user.getPasswordResetExpiresAt();
+        if (expectedHash == null || expiresAt == null || expiresAt.isBefore(Instant.now()) || !constantTimeEquals(expectedHash, tokenHash(request.token()))) {
+            throw new IllegalArgumentException("Password reset link is invalid or expired");
+        }
+
+        user.setPasswordHash(passwordService.hash(email, request.password()));
+        user.clearPasswordReset();
+        user.setSessionToken(UUID.randomUUID().toString());
+        if (request.language() != null && !request.language().isBlank()) {
+            user.setLanguage(normaliseLanguage(request.language()));
+        }
+        structuredLogs.info(log, "auth.password_reset_confirmed", structuredLogs.fields(
+                "userId", user.getId(),
+                "email", user.getEmail()
+        ));
+        return user;
+    }
+
     private String normaliseLanguage(String language) {
         return "en".equalsIgnoreCase(language) ? "en" : "af";
+    }
+
+    private String secureToken() {
+        byte[] bytes = new byte[32];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String tokenHash(String token) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
+    }
+
+    private boolean constantTimeEquals(String left, String right) {
+        return MessageDigest.isEqual(left.getBytes(StandardCharsets.UTF_8), right.getBytes(StandardCharsets.UTF_8));
     }
 
     private void validatePendingRegistration(AppUser user, AuthRequest request) {

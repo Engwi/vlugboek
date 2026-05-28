@@ -2,9 +2,9 @@
 [CmdletBinding()]
 param(
     [string]$SourceImage = (Join-Path (Split-Path -Parent $PSScriptRoot) 'frontend\src\assets\hero-pigeon.png'),
-    [int]$CropX = 830,
-    [int]$CropY = 85,
-    [int]$CropSize = 700
+    [int]$CropX = 750,
+    [int]$CropY = 0,
+    [int]$CropSize = 860
 )
 
 $ErrorActionPreference = 'Stop'
@@ -74,6 +74,7 @@ function New-IconBitmap {
     param(
         [System.Drawing.Image]$Source,
         [int]$Size,
+        [double]$ContentScale = 1.0,
         [switch]$Round
     )
 
@@ -97,24 +98,26 @@ function New-IconBitmap {
         }
 
         $sourceRect = New-Object -TypeName System.Drawing.Rectangle -ArgumentList $CropX, $CropY, $safeCropSize, $safeCropSize
-        $destRect = New-Object -TypeName System.Drawing.Rectangle -ArgumentList 0, 0, $Size, $Size
+        $contentSize = [Math]::Max(1, [Math]::Min($Size, [int][Math]::Round($Size * $ContentScale)))
+        $contentOffset = [int][Math]::Floor(($Size - $contentSize) / 2)
+        $destRect = New-Object -TypeName System.Drawing.Rectangle -ArgumentList $contentOffset, $contentOffset, $contentSize, $contentSize
         $graphics.DrawImage($Source, $destRect, $sourceRect.X, $sourceRect.Y, $sourceRect.Width, $sourceRect.Height, [System.Drawing.GraphicsUnit]::Pixel)
 
         $navyOverlay = New-Object -TypeName System.Drawing.SolidBrush -ArgumentList (New-Color '#0B1623' 44)
-        $graphics.FillRectangle($navyOverlay, 0, 0, $Size, $Size)
+        $graphics.FillRectangle($navyOverlay, $destRect)
         $navyOverlay.Dispose()
 
         $gold = New-Color '#C79A47'
-        $ringWidth = [Math]::Max(2, [int]($Size * 0.032))
-        $ringInset = [Math]::Max(4, [int]($Size * 0.055))
+        $ringWidth = [Math]::Max(2, [int]($contentSize * 0.032))
+        $ringInset = [Math]::Max(4, [int]($contentSize * 0.055))
         $pen = New-Object -TypeName System.Drawing.Pen -ArgumentList $gold, $ringWidth
         $pen.Alignment = [System.Drawing.Drawing2D.PenAlignment]::Inset
-        $ringRect = New-Object -TypeName System.Drawing.Rectangle -ArgumentList $ringInset, $ringInset, ($Size - ($ringInset * 2)), ($Size - ($ringInset * 2))
+        $ringRect = New-Object -TypeName System.Drawing.Rectangle -ArgumentList ($contentOffset + $ringInset), ($contentOffset + $ringInset), ($contentSize - ($ringInset * 2)), ($contentSize - ($ringInset * 2))
 
         if ($Round) {
             $graphics.DrawEllipse($pen, $ringRect)
         } else {
-            $radius = [Math]::Max(8, [int]($Size * 0.16))
+            $radius = [Math]::Max(8, [int]($contentSize * 0.16))
             $ringPath = New-RoundedRectanglePath $ringRect $radius
             try {
                 $graphics.DrawPath($pen, $ringPath)
@@ -270,7 +273,7 @@ function Export-AndroidIcons {
 
     foreach ($entry in $foregroundSizes.GetEnumerator()) {
         $dir = Join-Path $AndroidResDir $entry.Key
-        $foreground = New-IconBitmap -Source $Source -Size $entry.Value
+        $foreground = New-IconBitmap -Source $Source -Size $entry.Value -ContentScale 0.72
         try {
             Save-Png $foreground (Join-Path $dir 'ic_launcher_foreground.png')
         } finally {

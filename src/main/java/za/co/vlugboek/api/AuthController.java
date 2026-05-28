@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import za.co.vlugboek.api.dto.AuthRequest;
 import za.co.vlugboek.api.dto.AuthResponse;
+import za.co.vlugboek.api.dto.MessageResponse;
+import za.co.vlugboek.api.dto.PasswordResetConfirmRequest;
+import za.co.vlugboek.api.dto.PasswordResetRequest;
 import za.co.vlugboek.service.AuthService;
 
 @RestController
@@ -29,5 +32,18 @@ public class AuthController {
     @Transactional
     public AuthResponse login(@Valid @RequestBody AuthRequest request) {
         return Dtos.auth(authService.login(request));
+    }
+
+    @PostMapping("/password-reset/request")
+    @Transactional
+    public MessageResponse requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
+        authService.requestPasswordReset(request);
+        return new MessageResponse("If the email is registered, a reset link has been sent");
+    }
+
+    @PostMapping("/password-reset/confirm")
+    @Transactional
+    public AuthResponse confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request) {
+        return Dtos.auth(authService.confirmPasswordReset(request));
     }
 }

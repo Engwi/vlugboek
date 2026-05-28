@@ -5,6 +5,7 @@ param(
     [string]$User = 'root',
     [string]$RemoteRoot = '/opt/vlugboek',
     [string]$Domain = 'vlugboek.co.za',
+    [string]$PublicUrl = '',
     [int]$BackendPort = 18081,
     [string]$SpringProfilesActive = '',
     [string]$DatabaseUrl = '',
@@ -21,8 +22,8 @@ param(
     [string]$SeedDemoName = 'Demo Fancier',
     [string]$SeedDemoPassword = 'demo123',
     [bool]$AuthenticatedHealthCheck = $true,
-    [string]$HealthLoginEmail = 'demo@vlugboek.local',
-    [string]$HealthLoginPassword = 'demo123',
+    [string]$HealthLoginEmail = 'admin@vlugboek.local',
+    [string]$HealthLoginPassword = 'admin123',
     [bool]$AdminHealthCheck = $false,
     [string]$HealthAdminEmail = 'admin@vlugboek.local',
     [string]$HealthAdminPassword = 'admin123',
@@ -90,9 +91,11 @@ Write-Host "Uploading remote installer..."
 Invoke-External scp @($Installer, "${Target}:$RemoteInstaller")
 
 Write-Host 'Running remote install/update...'
+$effectivePublicUrl = if ($PublicUrl) { $PublicUrl } else { "https://$Domain" }
 $remoteEnv = [System.Collections.Generic.List[string]]::new()
 $remoteEnv.Add("APP_ROOT=$(ConvertTo-ShellLiteral $RemoteRoot)")
 $remoteEnv.Add("DOMAIN=$(ConvertTo-ShellLiteral $Domain)")
+$remoteEnv.Add("VLUGBOEK_PUBLIC_URL=$(ConvertTo-ShellLiteral $effectivePublicUrl)")
 $remoteEnv.Add("BACKEND_PORT=$(ConvertTo-ShellLiteral ([string]$BackendPort))")
 $remoteEnv.Add("VLUGBOEK_SEED_REFERENCE_DATA_ENABLED=$(ConvertTo-ShellLiteral (ConvertTo-LinuxBool $SeedReferenceData))")
 $remoteEnv.Add("VLUGBOEK_SEED_PDF_IMPORT_ENABLED=$(ConvertTo-ShellLiteral (ConvertTo-LinuxBool $SeedPdfImport))")

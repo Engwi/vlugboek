@@ -11,7 +11,7 @@ param(
     [string]$DatabaseUrl = '',
     [string]$DatabaseUser = '',
     [string]$DatabasePassword = '',
-    [string]$PreserveAdminEmail = '',
+    [string]$PreserveAdminEmail = 'admin@vlugboek.local',
     [switch]$SkipBackup,
     [switch]$Force
 )
@@ -29,8 +29,8 @@ if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) {
 }
 
 if (-not $Force) {
-    Write-Warning "This will flush remote Vlugboek data on $Target. Reports, datasets, email audits, and non-admin users will be deleted."
-    Write-Warning "Admin users are preserved. Organisation reference data is preserved."
+    Write-Warning "This will flush remote Vlugboek data on $Target. Reports, datasets, email audits, organisation records, and non-admin users will be deleted."
+    Write-Warning "Only the matching system admin account is preserved. Federation admins, federations, clubs, and lofts are removed."
     $answer = Read-Host "Type FLUSH $Server to continue"
     if ($answer -ne "FLUSH $Server") {
         Write-Host 'Cancelled.'
@@ -118,9 +118,22 @@ WAS_ACTIVE=false
 if systemctl is-active --quiet "$SERVICE_NAME"; then
   WAS_ACTIVE=true
 fi
+FLUSH_SUCCEEDED=false
 
 restart_if_needed() {
   if [[ "$WAS_ACTIVE" == "true" ]]; then
+    if [[ "$FLUSH_SUCCEEDED" == "true" ]]; then
+      echo "Disabling seeders for clean-slate restart..."
+      local override_dir="/etc/systemd/system/$SERVICE_NAME.service.d"
+      mkdir -p "$override_dir"
+      cat > "$override_dir/90-clean-slate-seed-disable.conf" <<'SEED_EOF'
+[Service]
+Environment="VLUGBOEK_SEED_REFERENCE_DATA_ENABLED=false"
+Environment="VLUGBOEK_SEED_DEMO_USERS_ENABLED=false"
+Environment="VLUGBOEK_SEED_PDF_IMPORT_ENABLED=false"
+SEED_EOF
+      systemctl daemon-reload >/dev/null 2>&1 || true
+    fi
     systemctl start "$SERVICE_NAME" >/dev/null 2>&1 || true
   fi
 }
@@ -201,9 +214,10 @@ run_pg_scalar() {
     --command "$sql"
 }
 
-ADMIN_FILTER=""
+ADMIN_ROLE_LIST="'ADMIN','SYSTEM_ADMIN'"
+ADMIN_CONDITION="role in ($ADMIN_ROLE_LIST)"
 if [[ -n "$PRESERVE_ADMIN_EMAIL" ]]; then
-  ADMIN_FILTER=" and lower(email) = lower('$(sql_escape "$PRESERVE_ADMIN_EMAIL")')"
+  ADMIN_CONDITION="$ADMIN_CONDITION and lower(email) = lower('$(sql_escape "$PRESERVE_ADMIN_EMAIL")')"
 fi
 
 FLUSH_SQL="
@@ -215,7 +229,11 @@ delete from report_columns;
 delete from report_rows;
 delete from report_datasets;
 delete from documents;
-delete from app_users where role <> 'ADMIN';
+delete from app_users where not ($ADMIN_CONDITION);
+update app_users set federation_id = null, club_id = null, loft_id = null where $ADMIN_CONDITION;
+delete from lofts;
+delete from clubs;
+delete from federations;
 commit;
 "
 
@@ -228,7 +246,7 @@ if [[ "$DATABASE_MODE" == "postgres" ]]; then
     apt-get install -y postgresql-client
   fi
 
-  ADMIN_COUNT="$(run_pg_scalar "select count(*) from app_users where role = 'ADMIN'$ADMIN_FILTER;")"
+  ADMIN_COUNT="$(run_pg_scalar "select count(*) from app_users where $ADMIN_CONDITION;")"
   if [[ "$ADMIN_COUNT" == "0" ]]; then
     echo "No matching admin user found. Aborting before flush." >&2
     exit 1
@@ -252,10 +270,14 @@ if [[ "$DATABASE_MODE" == "postgres" ]]; then
 
   echo "Flushing database rows..."
   run_pg_sql "$FLUSH_SQL"
+  REMAINING_ADMINS="$(run_pg_scalar "select count(*) from app_users where $ADMIN_CONDITION;")"
   REMAINING_USERS="$(run_pg_scalar "select count(*) from app_users;")"
   REMAINING_DOCUMENTS="$(run_pg_scalar "select count(*) from documents;")"
+  REMAINING_FEDERATIONS="$(run_pg_scalar "select count(*) from federations;")"
+  REMAINING_CLUBS="$(run_pg_scalar "select count(*) from clubs;")"
+  REMAINING_LOFTS="$(run_pg_scalar "select count(*) from lofts;")"
 else
-  ADMIN_COUNT="$(run_h2_scalar "select count(*) from app_users where role = 'ADMIN'$ADMIN_FILTER;")"
+  ADMIN_COUNT="$(run_h2_scalar "select count(*) from app_users where $ADMIN_CONDITION;")"
   if [[ "$ADMIN_COUNT" == "0" ]]; then
     echo "No matching admin user found. Aborting before flush." >&2
     exit 1
@@ -269,14 +291,23 @@ else
 
   echo "Flushing database rows..."
   run_h2_sql "$FLUSH_SQL"
+  REMAINING_ADMINS="$(run_h2_scalar "select count(*) from app_users where $ADMIN_CONDITION;")"
   REMAINING_USERS="$(run_h2_scalar "select count(*) from app_users;")"
   REMAINING_DOCUMENTS="$(run_h2_scalar "select count(*) from documents;")"
+  REMAINING_FEDERATIONS="$(run_h2_scalar "select count(*) from federations;")"
+  REMAINING_CLUBS="$(run_h2_scalar "select count(*) from clubs;")"
+  REMAINING_LOFTS="$(run_h2_scalar "select count(*) from lofts;")"
 fi
 
+FLUSH_SUCCEEDED=true
+
 echo "Flush complete."
-echo "Admin users preserved: $ADMIN_COUNT"
+echo "Admin users preserved: $REMAINING_ADMINS"
 echo "Remaining users: $REMAINING_USERS"
 echo "Remaining documents: $REMAINING_DOCUMENTS"
+echo "Remaining federations: $REMAINING_FEDERATIONS"
+echo "Remaining clubs: $REMAINING_CLUBS"
+echo "Remaining lofts: $REMAINING_LOFTS"
 '@
 
 $RemoteScript = $RemoteScriptTemplate.
@@ -291,7 +322,7 @@ $RemoteScript = $RemoteScriptTemplate.
     Replace('__SKIP_BACKUP__', (ConvertTo-ShellLiteral ($SkipBackup.IsPresent.ToString().ToLowerInvariant())))
 $RemoteScript = $RemoteScript -replace "`r`n", "`n" -replace "`r", ''
 
-if ($PSCmdlet.ShouldProcess($Target, 'Flush remote Vlugboek database while preserving admin users')) {
+if ($PSCmdlet.ShouldProcess($Target, 'Flush remote Vlugboek database to a system-admin-only clean slate')) {
     $RemoteScript | & ssh $Target 'bash -s'
     if ($LASTEXITCODE -ne 0) {
         throw 'Remote DB flush failed.'

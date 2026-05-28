@@ -40,6 +40,9 @@ public class DocumentRecord {
 
     private long fileSize;
 
+    @Column(length = 64)
+    private String contentSha256;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ReportFamily reportFamily = ReportFamily.UNKNOWN;
@@ -115,6 +118,14 @@ public class DocumentRecord {
 
     public long getFileSize() {
         return fileSize;
+    }
+
+    public String getContentSha256() {
+        return contentSha256;
+    }
+
+    public void setContentSha256(String contentSha256) {
+        this.contentSha256 = contentSha256;
     }
 
     public ReportFamily getReportFamily() {

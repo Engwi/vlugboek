@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import za.co.vlugboek.api.dto.ChangePasswordRequest;
 import za.co.vlugboek.api.dto.AuthResponse;
 import za.co.vlugboek.api.dto.LanguagePreferenceRequest;
 import za.co.vlugboek.domain.AppUser;
@@ -28,6 +29,13 @@ public class ProfileController {
     public AuthResponse updateLanguage(@Valid @RequestBody LanguagePreferenceRequest request, Authentication authentication) {
         AppUser user = currentUser(authentication);
         return Dtos.auth(authService.updateLanguage(user.getId(), request.language()));
+    }
+
+    @PostMapping("/password")
+    @Transactional
+    public AuthResponse changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
+        AppUser user = currentUser(authentication);
+        return Dtos.auth(authService.changePassword(user.getId(), request));
     }
 
     private AppUser currentUser(Authentication authentication) {

@@ -10,6 +10,10 @@ import za.co.vlugboek.domain.ReportFamily;
 public interface DocumentRepository extends JpaRepository<DocumentRecord, Long> {
     Optional<DocumentRecord> findFirstByOriginalFilenameOrderByUploadedAtDesc(String originalFilename);
 
+    Optional<DocumentRecord> findFirstByContentSha256OrderByUploadedAtDesc(String contentSha256);
+
+    List<DocumentRecord> findByContentSha256IsNullAndFileSize(long fileSize);
+
     List<DocumentRecord> findAllByOrderByUploadedAtDesc();
 
     List<DocumentRecord> findByAvailableToUsersTrueOrderByUploadedAtDesc();

@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,9 +34,13 @@ import za.co.vlugboek.repo.EmailDeliveryAuditRepository;
 })
 class EmailDeliverySuccessAuditTest {
     private static HttpServer mailer;
+    private static final AtomicReference<String> lastMessageBody = new AtomicReference<>("");
 
     @Autowired
     private EmailDeliveryService emailDeliveryService;
+
+    @Autowired
+    private PasswordResetEmailService passwordResetEmailService;
 
     @Autowired
     private EmailDeliveryAuditRepository audits;
@@ -85,11 +90,28 @@ class EmailDeliverySuccessAuditTest {
         assertThat(deliveries.getFirst().getMessageId()).isEqualTo("test-message");
     }
 
+    @Test
+    void passwordResetUsesGenericMailerMessageEndpoint() {
+        AppUser recipient = users.findByEmailIgnoreCase("demo@vlugboek.local").orElseThrow();
+
+        passwordResetEmailService.sendResetLink(recipient, "reset-token-fixture", "af");
+
+        assertThat(lastMessageBody.get()).contains("demo@vlugboek.local");
+        assertThat(lastMessageBody.get()).contains("reset-token-fixture");
+    }
+
     private static synchronized int mailerPort() throws IOException {
         if (mailer == null) {
             mailer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             mailer.createContext("/send-document", exchange -> {
                 byte[] body = "{\"messageId\":\"test-message\"}".getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, body.length);
+                exchange.getResponseBody().write(body);
+                exchange.close();
+            });
+            mailer.createContext("/send-message", exchange -> {
+                lastMessageBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] body = "{\"messageId\":\"reset-message\"}".getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, body.length);
                 exchange.getResponseBody().write(body);
                 exchange.close();

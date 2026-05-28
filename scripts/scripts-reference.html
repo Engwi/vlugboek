@@ -508,6 +508,11 @@
             <td><code>vlugboek.co.za</code></td>
           </tr>
           <tr>
+            <td><code>-PublicUrl</code></td>
+            <td>Public app URL used in password reset email links.</td>
+            <td><code>https://&lt;Domain&gt;</code></td>
+          </tr>
+          <tr>
             <td><code>-BackendPort</code></td>
             <td>Port for the Spring Boot API behind nginx.</td>
             <td><code>18081</code></td>
@@ -550,7 +555,7 @@
           <tr>
             <td><code>-HealthLoginEmail</code>, <code>-HealthLoginPassword</code></td>
             <td>Credentials used when authenticated health checks are enabled.</td>
-            <td><code>demo@vlugboek.local / demo123</code></td>
+            <td><code>admin@vlugboek.local / admin123</code></td>
           </tr>
           <tr>
             <td><code>-AdminHealthCheck</code></td>
@@ -788,12 +793,12 @@
           <tr>
             <td><code>-LoginEmail</code></td>
             <td>Login used for authenticated remote checks.</td>
-            <td><code>demo@vlugboek.local</code></td>
+            <td><code>admin@vlugboek.local</code></td>
           </tr>
           <tr>
             <td><code>-LoginPassword</code></td>
             <td>Password used for authenticated remote checks.</td>
-            <td><code>demo123</code></td>
+            <td><code>admin123</code></td>
           </tr>
           <tr>
             <td><code>-AdminChecks</code></td>
@@ -818,7 +823,7 @@
       <div class="script-head">
         <div>
           <h2>flush-remote-db.ps1</h2>
-          <p>Flushes remote Vlugboek data while preserving admin users and organisation reference records.</p>
+          <p>Flushes remote Vlugboek data back to a clean slate with only the system admin account preserved.</p>
         </div>
         <span class="tag">Danger</span>
       </div>
@@ -865,8 +870,8 @@
           </tr>
           <tr>
             <td><code>-PreserveAdminEmail</code></td>
-            <td>Require this specific admin email to exist before flushing. Blank preserves all users with role <code>ADMIN</code>.</td>
-            <td>Blank</td>
+            <td>Require this specific system admin or legacy admin email to exist before flushing. Federation admins are deleted.</td>
+            <td><code>admin@vlugboek.local</code></td>
           </tr>
           <tr>
             <td><code>-SkipBackup</code></td>
@@ -886,9 +891,10 @@
 .\scripts\flush-remote-db.ps1 -Database postgres -DatabaseUrl 'jdbc:postgresql://localhost:5432/vlugboek' -DatabaseUser vlugboek -DatabasePassword 'ZeroZippo101@' -Force</pre>
 
       <p class="note danger">
-        This is a nuclear reset. It deletes reports, datasets, email delivery audits, and non-admin users.
-        It keeps admin users and organisation lookup records. A remote database backup is created unless
-        <code>-SkipBackup</code> is used.
+        This is a nuclear reset. It deletes reports, datasets, email delivery audits, federation admins,
+        federations, clubs, lofts, and every non-admin user. It also disables reference/demo/PDF seeders on
+        the remote service so the restart does not recreate organisation records. A remote database backup is
+        created unless <code>-SkipBackup</code> is used.
       </p>
     </section>
 

@@ -5,9 +5,11 @@ import {
   ClipboardCheck,
   Download,
   Eye,
+  EyeOff,
   FileDown,
   FileText,
   Flag,
+  KeyRound,
   Languages,
   LayoutGrid,
   LogIn,
@@ -33,6 +35,7 @@ import type { AuthResponse, ClubAdminDto, DashboardDto, DatasetDto, DocumentDto,
 type View = 'results' | 'leaderboards' | 'upload' | 'organisations';
 type AuthMode = 'login' | 'register';
 type TableMode = 'table' | 'cards';
+type PasswordDialogMode = 'change' | 'forgot' | 'reset';
 
 const familyOptions = [
   { value: '', labelKey: 'allTypes' },
@@ -53,12 +56,20 @@ const categoryOptions = [
 ] as const;
 
 const defaultAuth = {
-  email: 'demo@vlugboek.local',
-  password: 'demo123',
+  email: '',
+  password: '',
   displayName: '',
   federationId: '',
   clubId: '',
   loftId: ''
+};
+
+const defaultPasswordForm = {
+  email: '',
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+  token: ''
 };
 
 const emptyReportFilters: ReportFilters = {
@@ -108,7 +119,9 @@ export default function App() {
   const [reportFilters, setReportFilters] = useState<ReportFilters>(defaultReportFilters);
   const [selected, setSelected] = useState<DocumentDto | null>(null);
   const [dataset, setDataset] = useState<DatasetDto | null>(null);
-  const [tableMode, setTableMode] = useState<TableMode>(() => (typeof window !== 'undefined' && window.innerWidth < 760 ? 'cards' : 'table'));
+  const [tableMode, setTableMode] = useState<TableMode>('table');
+  const [passwordDialog, setPasswordDialog] = useState<PasswordDialogMode | null>(null);
+  const [passwordForm, setPasswordForm] = useState(defaultPasswordForm);
   const [datasetQuery, setDatasetQuery] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [pendingImport, setPendingImport] = useState<UploadResponse | null>(null);
@@ -138,6 +151,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resetToken = params.get('resetToken');
+    const email = params.get('email') ?? '';
+    if (resetToken) {
+      setPasswordForm({ ...defaultPasswordForm, email, token: resetToken });
+      setPasswordDialog('reset');
+    }
+  }, []);
+
+  useEffect(() => {
     if (!user) {
       clearPrivateData();
       return;
@@ -156,6 +179,12 @@ export default function App() {
       void loadOrganisations();
     }
   }, [user?.role, view]);
+
+  useEffect(() => {
+    if (view === 'results') {
+      setTableMode('table');
+    }
+  }, [view]);
 
   useEffect(() => {
     if (!user) return;
@@ -284,6 +313,7 @@ export default function App() {
   async function selectDocument(document: DocumentDto) {
     setLoadingDataset(true);
     try {
+      setTableMode('table');
       setSelected(document);
       setDataset(null);
       setDatasetQuery('');
@@ -321,18 +351,6 @@ export default function App() {
     }
   }
 
-  async function continueDemo() {
-    setBusy(true);
-    try {
-      setUser(await api.login({ email: 'demo@vlugboek.local', password: 'demo123', language }));
-      setNotice('Demo profile loaded');
-    } catch (error) {
-      showError(error);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   function handleLogout() {
     clearStoredAuth();
     clearPrivateData();
@@ -350,6 +368,65 @@ export default function App() {
       setUser(await api.updateLanguage(nextLanguage));
     } catch (error) {
       showError(error);
+    }
+  }
+
+  function openForgotPassword() {
+    setPasswordForm({ ...defaultPasswordForm, email: authForm.email });
+    setPasswordDialog('forgot');
+  }
+
+  function openChangePassword() {
+    setPasswordForm({ ...defaultPasswordForm, email: user?.email ?? '' });
+    setPasswordDialog('change');
+  }
+
+  function closePasswordDialog() {
+    setPasswordDialog(null);
+    setPasswordForm(defaultPasswordForm);
+  }
+
+  async function handlePasswordDialog(event: FormEvent) {
+    event.preventDefault();
+    if ((passwordDialog === 'change' || passwordDialog === 'reset') && passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setNotice(t.passwordsDoNotMatch);
+      return;
+    }
+
+    setBusy(true);
+    try {
+      if (passwordDialog === 'change') {
+        setUser(await api.changePassword({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        }));
+        setNotice(t.passwordChanged);
+        closePasswordDialog();
+        return;
+      }
+
+      if (passwordDialog === 'forgot') {
+        await api.requestPasswordReset({ email: passwordForm.email, language });
+        setNotice(t.resetLinkSent);
+        closePasswordDialog();
+        return;
+      }
+
+      if (passwordDialog === 'reset') {
+        setUser(await api.confirmPasswordReset({
+          email: passwordForm.email,
+          token: passwordForm.token,
+          password: passwordForm.newPassword,
+          language
+        }));
+        window.history.replaceState({}, '', window.location.pathname);
+        setNotice(t.passwordResetComplete);
+        closePasswordDialog();
+      }
+    } catch (error) {
+      showError(error);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -406,6 +483,7 @@ export default function App() {
   }
 
   function showCurrentResults() {
+    setTableMode('table');
     setReportFilters(defaultReportFilters);
     setFilterClubs([]);
     setFilterLofts([]);
@@ -451,7 +529,8 @@ export default function App() {
         lofts={lofts}
         busy={busy}
         onAuth={handleAuth}
-        onDemo={continueDemo}
+        onForgotPassword={openForgotPassword}
+        onChangePassword={openChangePassword}
         onLogout={handleLogout}
       />
 
@@ -551,6 +630,17 @@ export default function App() {
           <EmptyPanel icon={<ShieldCheck />} title={t.signInRequired} />
         </section>
       )}
+      {passwordDialog && (
+        <PasswordDialog
+          t={t}
+          mode={passwordDialog}
+          form={passwordForm}
+          setForm={setPasswordForm}
+          busy={busy}
+          onSubmit={handlePasswordDialog}
+          onClose={closePasswordDialog}
+        />
+      )}
     </main>
   );
 }
@@ -573,7 +663,8 @@ function Hero({
   lofts,
   busy,
   onAuth,
-  onDemo,
+  onForgotPassword,
+  onChangePassword,
   onLogout
 }: {
   t: Record<string, string>;
@@ -593,9 +684,12 @@ function Hero({
   lofts: LabelDto[];
   busy: boolean;
   onAuth: (event: FormEvent) => void;
-  onDemo: () => void;
+  onForgotPassword: () => void;
+  onChangePassword: () => void;
   onLogout: () => void;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <section className="relative overflow-hidden bg-midnight-950 text-ivory-100">
       <img
@@ -698,14 +792,24 @@ function Hero({
                   <MiniStat icon={<Timer />} label={t.races} value={dashboard?.raceCount ?? 0} />
                   <MiniStat icon={<Trophy />} label={t.snapshots} value={dashboard?.leaderboardCount ?? 0} />
                 </div>
-                <button
-                  type="button"
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-midnight-950/15 text-sm font-semibold text-midnight-900 hover:border-championship-500"
-                  onClick={onLogout}
-                >
-                  <LogOut className="h-4 w-4" />
-                  {t.signOut}
-                </button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-midnight-950/15 text-sm font-semibold text-midnight-900 hover:border-championship-500"
+                    onClick={onChangePassword}
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    {t.changePassword}
+                  </button>
+                  <button
+                    type="button"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-midnight-950/15 text-sm font-semibold text-midnight-900 hover:border-championship-500"
+                    onClick={onLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {t.signOut}
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={onAuth} className="space-y-3">
@@ -726,7 +830,16 @@ function Hero({
                   </button>
                 </div>
                 <Field label={t.email} value={authForm.email} onChange={(email) => setAuthForm({ ...authForm, email })} type="email" required />
-                <Field label={t.password} value={authForm.password} onChange={(password) => setAuthForm({ ...authForm, password })} type="password" required />
+                <PasswordField
+                  label={t.password}
+                  value={authForm.password}
+                  onChange={(password) => setAuthForm({ ...authForm, password })}
+                  visible={showPassword}
+                  onToggle={() => setShowPassword((current) => !current)}
+                  showLabel={t.showPassword}
+                  hideLabel={t.hidePassword}
+                  required
+                />
                 {authMode === 'register' && (
                   <>
                     <Field label={t.name} value={authForm.displayName} onChange={(displayName) => setAuthForm({ ...authForm, displayName })} required />
@@ -740,17 +853,15 @@ function Hero({
                   {authMode === 'login' ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
                   {authMode === 'login' ? t.signIn : t.register}
                 </button>
-                <button
-                  type="button"
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-midnight-950/15 text-sm font-semibold text-midnight-900 hover:border-championship-500"
-                  onClick={onDemo}
-                  disabled={busy}
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  {t.continueDemo}
-                </button>
-                <p className="text-xs text-slateInk">{t.demoHint}</p>
-                <p className="text-xs text-slateInk">{t.adminHint}</p>
+                {authMode === 'login' && (
+                  <button
+                    type="button"
+                    className="mx-auto block text-xs font-semibold text-slateInk underline-offset-4 hover:text-midnight-950 hover:underline"
+                    onClick={onForgotPassword}
+                  >
+                    {t.forgotPassword}
+                  </button>
+                )}
               </form>
             )}
           </div>
@@ -803,6 +914,123 @@ function Field({
         required={required}
       />
     </label>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  onChange,
+  visible,
+  onToggle,
+  showLabel,
+  hideLabel,
+  required = false
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  visible: boolean;
+  onToggle: () => void;
+  showLabel: string;
+  hideLabel: string;
+  required?: boolean;
+}) {
+  const buttonLabel = visible ? hideLabel : showLabel;
+
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slateInk">{label}</span>
+      <div className="relative">
+        <input
+          className="h-11 w-full rounded-lg border border-midnight-950/15 bg-white px-3 pr-12 text-sm outline-none ring-championship-500 focus:ring-2"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          type={visible ? 'text' : 'password'}
+          required={required}
+        />
+        <button
+          type="button"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slateInk hover:text-midnight-950"
+          onClick={onToggle}
+          aria-label={buttonLabel}
+          title={buttonLabel}
+        >
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </label>
+  );
+}
+
+function PasswordDialog({
+  t,
+  mode,
+  form,
+  setForm,
+  busy,
+  onSubmit,
+  onClose
+}: {
+  t: Record<string, string>;
+  mode: PasswordDialogMode;
+  form: typeof defaultPasswordForm;
+  setForm: (form: typeof defaultPasswordForm) => void;
+  busy: boolean;
+  onSubmit: (event: FormEvent) => void;
+  onClose: () => void;
+}) {
+  const title = mode === 'change' ? t.changePassword : mode === 'forgot' ? t.resetPassword : t.chooseNewPassword;
+  const intro = mode === 'change' ? t.changePasswordIntro : mode === 'forgot' ? t.forgotPasswordIntro : t.resetPasswordIntro;
+  const action = mode === 'change' ? t.savePassword : mode === 'forgot' ? t.sendResetLink : t.resetPassword;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-midnight-950/70 px-4 py-6 backdrop-blur-sm">
+      <form onSubmit={onSubmit} className="w-full max-w-md rounded-lg border border-midnight-950/10 bg-ivory-100 p-5 shadow-card">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-championship-600">Vlugboek</p>
+            <h2 className="mt-1 font-display text-3xl text-midnight-950">{title}</h2>
+          </div>
+          <button type="button" className="rounded-lg px-2 py-1 text-sm font-semibold text-slateInk hover:text-midnight-950" onClick={onClose}>
+            {t.close}
+          </button>
+        </div>
+        <p className="mb-4 text-sm leading-6 text-slateInk">{intro}</p>
+
+        <div className="space-y-3">
+          {mode !== 'change' && (
+            <Field label={t.email} value={form.email} onChange={(email) => setForm({ ...form, email })} type="email" required />
+          )}
+          {mode === 'change' && (
+            <Field label={t.currentPassword} value={form.currentPassword} onChange={(currentPassword) => setForm({ ...form, currentPassword })} type="password" required />
+          )}
+          {mode !== 'forgot' && (
+            <>
+              <Field label={t.newPassword} value={form.newPassword} onChange={(newPassword) => setForm({ ...form, newPassword })} type="password" required />
+              <Field label={t.confirmPassword} value={form.confirmPassword} onChange={(confirmPassword) => setForm({ ...form, confirmPassword })} type="password" required />
+            </>
+          )}
+        </div>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
+          <button
+            className="flex h-11 items-center justify-center gap-2 rounded-lg bg-championship-500 px-4 font-semibold text-midnight-950 hover:bg-championship-400 disabled:opacity-60"
+            disabled={busy}
+          >
+            <KeyRound className="h-4 w-4" />
+            {action}
+          </button>
+          <button
+            type="button"
+            className="h-11 rounded-lg border border-midnight-950/15 px-4 text-sm font-semibold text-midnight-900 hover:border-championship-500"
+            onClick={onClose}
+          >
+            {t.cancel}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

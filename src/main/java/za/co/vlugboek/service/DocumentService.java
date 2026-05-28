@@ -2,13 +2,18 @@ package za.co.vlugboek.service;
 
 import jakarta.transaction.Transactional;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,9 +69,13 @@ public class DocumentService {
     @Transactional
     public DocumentRecord ingestExistingPdf(Path pdfPath) {
         String filename = pdfPath.getFileName().toString();
-        return documents.findFirstByOriginalFilenameOrderByUploadedAtDesc(filename)
+        long size = sizeOf(pdfPath);
+        String contentSha256 = sha256(pdfPath);
+        return findDuplicateDocument(contentSha256, size)
                 .map(this::ensureMetadata)
-                .orElseGet(() -> importDocument(filename, pdfPath.toAbsolutePath(), "application/pdf", sizeOf(pdfPath), true));
+                .or(() -> documents.findFirstByOriginalFilenameOrderByUploadedAtDesc(filename)
+                        .map(document -> ensureContentHash(document, contentSha256)))
+                .orElseGet(() -> importDocument(filename, pdfPath.toAbsolutePath(), "application/pdf", size, contentSha256, true));
     }
 
     @Transactional
@@ -83,13 +92,27 @@ public class DocumentService {
             String storedName = Instant.now().toEpochMilli() + "-" + UUID.randomUUID() + "-" + original;
             Path stored = uploadsDir.resolve(storedName).toAbsolutePath().normalize();
             file.transferTo(stored);
+            long size = Files.size(stored);
+            String contentSha256 = sha256(stored);
+            Optional<DocumentRecord> duplicate = findDuplicateDocument(contentSha256, size);
+            if (duplicate.isPresent()) {
+                deleteUpload(stored);
+                structuredLogs.info(log, "document.upload.duplicate", structuredLogs.fields(
+                        "filename", original,
+                        "existingDocumentId", duplicate.get().getId(),
+                        "existingTitle", duplicate.get().getTitle(),
+                        "sha256", contentSha256
+                ));
+                throw new DuplicateDocumentException(duplicate.get());
+            }
             structuredLogs.info(log, "document.upload.stored", structuredLogs.fields(
                     "filename", original,
                     "storedName", stored.getFileName().toString(),
                     "contentType", file.getContentType(),
-                    "size", Files.size(stored)
+                    "size", size,
+                    "sha256", contentSha256
             ));
-            return importDocument(original, stored, file.getContentType(), Files.size(stored), false);
+            return importDocument(original, stored, file.getContentType(), size, contentSha256, false);
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
@@ -122,7 +145,7 @@ public class DocumentService {
         return Path.of(document.getStoredPath());
     }
 
-    private DocumentRecord importDocument(String filename, Path path, String contentType, long size, boolean publishImmediately) {
+    private DocumentRecord importDocument(String filename, Path path, String contentType, long size, String contentSha256, boolean publishImmediately) {
         String pdfText = pdfTextService.extract(path);
         RecognisedReport recognised = recognitionService.recognise(filename, pdfText);
         structuredLogs.info(log, "document.recognised", structuredLogs.fields(
@@ -134,6 +157,7 @@ public class DocumentService {
                 "publishImmediately", publishImmediately
         ));
         DocumentRecord document = new DocumentRecord(recognised.title(), filename, path.toString(), contentType, size);
+        document.setContentSha256(contentSha256);
         document.applyRecognition(
                 recognised.family(),
                 recognised.category(),
@@ -143,7 +167,7 @@ public class DocumentService {
                 recognised.liberatedAt(),
                 recognised.reportCreatedAt()
         );
-        document = documents.save(document);
+        document = documents.saveAndFlush(document);
 
         ReportDataset dataset = datasetBuilderService.buildDataset(document, pdfText);
         dataset = datasets.save(dataset);
@@ -168,6 +192,32 @@ public class DocumentService {
         datasets.findByDocumentId(document.getId()).ifPresent(dataset ->
                 applyMetadata(document, dataset, recognitionService.recognise(document.getOriginalFilename(), document.getTitle())));
         return documents.save(document);
+    }
+
+    private DocumentRecord ensureContentHash(DocumentRecord document, String contentSha256) {
+        if (document.getContentSha256() == null || document.getContentSha256().isBlank()) {
+            document.setContentSha256(contentSha256);
+            document = documents.save(document);
+        }
+        return ensureMetadata(document);
+    }
+
+    private Optional<DocumentRecord> findDuplicateDocument(String contentSha256, long size) {
+        Optional<DocumentRecord> current = documents.findFirstByContentSha256OrderByUploadedAtDesc(contentSha256);
+        if (current.isPresent()) {
+            return current;
+        }
+
+        return documents.findByContentSha256IsNullAndFileSize(size).stream()
+                .filter(document -> {
+                    Path existingPath = Path.of(document.getStoredPath());
+                    return Files.isRegularFile(existingPath) && contentSha256.equals(sha256(existingPath));
+                })
+                .findFirst()
+                .map(document -> {
+                    document.setContentSha256(contentSha256);
+                    return documents.save(document);
+                });
     }
 
     private void applyMetadata(DocumentRecord document, ReportDataset dataset, RecognisedReport recognised) {
@@ -229,6 +279,30 @@ public class DocumentService {
             return Files.size(path);
         } catch (IOException ex) {
             return 0;
+        }
+    }
+
+    private String sha256(Path path) {
+        try (InputStream input = Files.newInputStream(path)) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (IOException ex) {
+            throw new UncheckedIOException("Could not hash PDF " + path, ex);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
+    }
+
+    private void deleteUpload(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException ex) {
+            log.warn("Could not delete duplicate uploaded PDF {}: {}", path, ex.getMessage());
         }
     }
 }
