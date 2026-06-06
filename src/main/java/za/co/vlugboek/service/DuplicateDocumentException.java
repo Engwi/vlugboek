@@ -17,6 +17,13 @@ public class DuplicateDocumentException extends RuntimeException {
         this.uploadedAt = document.getUploadedAt();
     }
 
+    public String message(String language) {
+        if (language != null && language.toLowerCase().startsWith("af")) {
+            return "Hierdie PDF is reeds opgelaai as \"" + documentTitle + "\".";
+        }
+        return getMessage();
+    }
+
     public Long getDocumentId() {
         return documentId;
     }

@@ -5,23 +5,18 @@ Deploy to linux with DB Push
   -DatabaseUrl 'jdbc:postgresql://localhost:5432/vlugboek' `
   -DatabaseUser vlugboek `
   -DatabasePassword 'ZeroZippo101@' `
-  -SeedAdmin:$true `
+  -SeedAdmin:$false `
   -SeedDemoUsers:$false `
   -SeedPdfImport:$false `
   -AuthenticatedHealthCheck:$false
   
 Nice Mobile Build Run AND DEPLOY
 ---------------------------------
-.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 0.2.0-pr11 -VersionCode 25013
+.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 0.7.0-pr16 -VersionCode 25018
 
-
-Polish for RC 1 List
---------------------
-(5)	IOS PWA Test in Safari (and make it "ready" for such an env - it seems there are 'matters' to consider
 
 Security
 ---------
-(1) Security Harden (at least Mozilla Observatory)
 
 
 
@@ -59,3 +54,5 @@ Old Polish List
 >>(2) No password reset option
 >>(4) Tabel en Kaarte / Trable and Cards - Make TABEL / TABLE the defaul when ever results are selected 
 >>(3) Double uploads allowed it seems.. stop that.
+>>(5) IOS PWA Test in Safari (and make it "ready" for such an env - it seems there are 'matters' to consider
+>>(1) Security Harden (at least Mozilla Observatory)

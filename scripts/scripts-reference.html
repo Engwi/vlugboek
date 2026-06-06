@@ -297,8 +297,10 @@
       <div class="grid two-col">
         <div>
           <h3>Local Development</h3>
-          <pre>.\scripts\start-local.ps1
-.\scripts\stop-local.ps1</pre>
+          <pre>.\scripts\build-local.ps1
+.\scripts\start-local.ps1
+.\scripts\stop-local.ps1
+.\scripts\flush-local-report-data.ps1</pre>
         </div>
         <div>
           <h3>Production Deployment</h3>
@@ -307,6 +309,7 @@
 .\scripts\deploy-linux.ps1
 .\scripts\rollback-linux.ps1
 .\scripts\remote-health.ps1
+.\scripts\flush-remote-report-data.ps1
 .\scripts\flush-remote-db.ps1</pre>
         </div>
         <div>
@@ -332,13 +335,16 @@
     <section class="card">
       <h2>Table of Contents</h2>
       <div class="toc">
+        <a href="#build-local">build-local.ps1</a>
         <a href="#start-local">start-local.ps1</a>
         <a href="#stop-local">stop-local.ps1</a>
+        <a href="#flush-local-report-data">flush-local-report-data.ps1</a>
         <a href="#build-release">build-release.ps1</a>
         <a href="#deploy-emailer-linux">deploy-emailer-linux.ps1</a>
         <a href="#deploy-linux">deploy-linux.ps1</a>
         <a href="#rollback-linux">rollback-linux.ps1</a>
         <a href="#remote-health">remote-health.ps1</a>
+        <a href="#flush-remote-report-data">flush-remote-report-data.ps1</a>
         <a href="#flush-remote-db">flush-remote-db.ps1</a>
         <a href="#sync-android">sync-android.ps1</a>
         <a href="#smoke-mobile-assets">smoke-mobile-assets.ps1</a>
@@ -354,6 +360,81 @@
         <a href="#install-emailer">linux/install-emailer.sh</a>
         <a href="#install-update">linux/install-or-update.sh</a>
       </div>
+    </section>
+
+    <section id="build-local" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>build-local.ps1</h2>
+          <p>Builds the local backend jar and frontend assets without creating a Linux deployment bundle.</p>
+        </div>
+        <span class="tag">Local</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-BackendOnly</code></td>
+            <td>Only builds the Spring Boot backend jar.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-FrontendOnly</code></td>
+            <td>Only builds the Vite frontend assets.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-WithTests</code></td>
+            <td>Runs Maven tests during the backend build. Without this, Maven packages with <code>-DskipTests</code>.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-Clean</code></td>
+            <td>Runs <code>mvn clean package</code> instead of <code>mvn package</code>.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-InstallFrontendDependencies</code></td>
+            <td>Runs <code>npm ci</code> or <code>npm install</code> before the frontend build. Also happens automatically if <code>frontend\node_modules</code> is missing.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-StopBackend</code></td>
+            <td>Stops the local backend before packaging so Windows can replace the jar.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-BackendPort</code></td>
+            <td>Port used to detect or stop the running local backend when <code>-StopBackend</code> is supplied.</td>
+            <td><code>8081</code></td>
+          </tr>
+          <tr>
+            <td><code>-ApiUrl</code></td>
+            <td>Optional <code>VITE_API_URL</code> value for the frontend build.</td>
+            <td>Blank</td>
+          </tr>
+          <tr>
+            <td><code>-WhatIf</code></td>
+            <td>Shows what would build without running Maven or npm.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\build-local.ps1
+.\scripts\build-local.ps1 -StopBackend
+.\scripts\build-local.ps1 -BackendOnly -WithTests
+.\scripts\build-local.ps1 -FrontendOnly
+.\scripts\build-local.ps1 -Clean -StopBackend</pre>
+
+      <p class="note ok">
+        Output is written to <code>target\vlugboek-0.0.1-SNAPSHOT.jar</code> and <code>frontend\dist</code>.
+        If the backend is already running on Windows, the jar can be locked; use <code>-StopBackend</code> or
+        run <code>.\scripts\stop-local.ps1</code> first.
+      </p>
     </section>
 
     <section id="start-local" class="card script-card">
@@ -433,6 +514,92 @@
       <pre>.\scripts\stop-local.ps1
 .\scripts\stop-local.ps1 -AlsoStopPorts
 .\scripts\stop-local.ps1 -AlsoStopPorts -Ports 8081,5173,8788</pre>
+    </section>
+
+    <section id="flush-local-report-data" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>flush-local-report-data.ps1</h2>
+          <p>Flushes local report and import data while preserving users and organisation master data.</p>
+        </div>
+        <span class="tag">Danger</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-DatabasePath</code></td>
+            <td>Local H2 database base path, without <code>.mv.db</code>.</td>
+            <td><code>data\vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-DatabaseUrl</code></td>
+            <td>Optional full H2 JDBC URL override.</td>
+            <td>Built from <code>-DatabasePath</code></td>
+          </tr>
+          <tr>
+            <td><code>-UploadsDir</code></td>
+            <td>Local uploaded PDF directory to clear after the database rows are removed.</td>
+            <td><code>data\uploads</code></td>
+          </tr>
+          <tr>
+            <td><code>-BackupDir</code></td>
+            <td>Directory where the pre-flush database/uploads zip backup is written.</td>
+            <td><code>dist\backups</code></td>
+          </tr>
+          <tr>
+            <td><code>-BackendPort</code></td>
+            <td>Local backend port used to detect a running backend.</td>
+            <td><code>8081</code></td>
+          </tr>
+          <tr>
+            <td><code>-JavaExe</code></td>
+            <td>Optional path to <code>java.exe</code> for running the embedded H2 SQL shell.</td>
+            <td><code>JAVA_HOME</code>, PATH, then JDK 21 default</td>
+          </tr>
+          <tr>
+            <td><code>-SkipBackup</code></td>
+            <td>Skips the local pre-flush database and uploads backup.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-KeepPdfSeederEnabled</code></td>
+            <td>Does not write the local backend override that disables PDF import seeding.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-NoRestart</code></td>
+            <td>Leaves the backend stopped if the script had to stop it first.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-StopBackendPortOwner</code></td>
+            <td>Stops the owner of <code>-BackendPort</code> when no usable <code>logs\backend.pid</code> exists.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-Force</code></td>
+            <td>Skips the local typed confirmation prompt.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\flush-local-report-data.ps1
+.\scripts\flush-local-report-data.ps1 -SkipBackup
+.\scripts\flush-local-report-data.ps1 -NoRestart
+.\scripts\flush-local-report-data.ps1 -DatabasePath C:\Development\Vlugboek\data\vlugboek -Force</pre>
+
+      <p class="note danger">
+        This is a local report/import reset. It deletes documents, report datasets, classification snapshots,
+        email delivery audits, and uploaded files under <code>data\uploads</code>. It preserves app users,
+        federations, clubs, and lofts. A local database/uploads backup is created unless <code>-SkipBackup</code>
+        is used. By default it writes <code>scripts\local-backend.env.cmd</code> so the local PDF import seeder
+        stays disabled on future backend starts.
+      </p>
     </section>
 
     <section id="build-release" class="card script-card">
@@ -817,6 +984,87 @@
 .\scripts\remote-health.ps1 -Server 123.123.123.123
 .\scripts\remote-health.ps1 -AdminChecks -AdminLoginEmail admin@vlugboek.local -AdminLoginPassword admin123
 .\scripts\remote-health.ps1 -EmailDocumentId 3 -LoginEmail you@example.com -LoginPassword your-password</pre>
+    </section>
+
+    <section id="flush-remote-report-data" class="card script-card">
+      <div class="script-head">
+        <div>
+          <h2>flush-remote-report-data.ps1</h2>
+          <p>Flushes remote report and import data while preserving users and organisation master data.</p>
+        </div>
+        <span class="tag">Danger</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-Server</code></td>
+            <td>SSH host or IP address.</td>
+            <td><code>vlugboek.co.za</code></td>
+          </tr>
+          <tr>
+            <td><code>-User</code></td>
+            <td>SSH username.</td>
+            <td><code>root</code></td>
+          </tr>
+          <tr>
+            <td><code>-RemoteRoot</code></td>
+            <td>Application root on the remote server.</td>
+            <td><code>/opt/vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-ServiceName</code></td>
+            <td>Systemd service name to stop before flushing and restart afterwards.</td>
+            <td><code>vlugboek</code></td>
+          </tr>
+          <tr>
+            <td><code>-Database</code></td>
+            <td>Database mode. <code>auto</code> reads the remote service environment.</td>
+            <td><code>auto</code></td>
+          </tr>
+          <tr>
+            <td><code>-SpringProfilesActive</code></td>
+            <td>Optional override used when auto-detecting PostgreSQL.</td>
+            <td>Blank</td>
+          </tr>
+          <tr>
+            <td><code>-DatabaseUrl</code>, <code>-DatabaseUser</code>, <code>-DatabasePassword</code></td>
+            <td>Optional database connection overrides. Usually only needed for PostgreSQL if the systemd service does not already have them.</td>
+            <td>Remote service environment</td>
+          </tr>
+          <tr>
+            <td><code>-SkipBackup</code></td>
+            <td>Skips the remote pre-flush database and uploads backup.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-KeepPdfSeederEnabled</code></td>
+            <td>Leaves the PDF import seeder setting untouched after the flush.</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td><code>-Force</code></td>
+            <td>Skips the local typed confirmation prompt.</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre>.\scripts\flush-remote-report-data.ps1
+.\scripts\flush-remote-report-data.ps1 -SkipBackup
+.\scripts\flush-remote-report-data.ps1 -KeepPdfSeederEnabled
+.\scripts\flush-remote-report-data.ps1 -Database postgres -DatabaseUrl 'jdbc:postgresql://localhost:5432/vlugboek' -DatabaseUser vlugboek -DatabasePassword 'ZeroZippo101@' -Force</pre>
+
+      <p class="note danger">
+        This is a report/import reset. It deletes documents, report datasets, classification snapshots,
+        email delivery audits, and uploaded files under <code>/opt/vlugboek/shared/uploads</code>. It preserves
+        app users, federations, clubs, and lofts. A remote database and uploads backup is created unless
+        <code>-SkipBackup</code> is used. By default it disables the PDF import seeder on restart so wiped reports
+        are not recreated immediately.
+      </p>
     </section>
 
     <section id="flush-remote-db" class="card script-card">
@@ -1365,7 +1613,7 @@
         <span class="tag">Helper</span>
       </div>
 
-      <p>No parameters. It writes backend output to <code>logs\backend.log</code> and <code>logs\backend.err</code>.</p>
+      <p>No parameters. It writes backend output to <code>logs\backend.log</code> and <code>logs\backend.err</code>. If <code>scripts\local-backend.env.cmd</code> exists, it is loaded before Java starts.</p>
       <pre>.\scripts\run-backend.cmd</pre>
     </section>
 

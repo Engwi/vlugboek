@@ -83,6 +83,69 @@ class PdfRecognitionAndDatasetTest {
         assertThat(rowValues(dataset, 0)).contains("1", "F&A LENSLEY A", "CPK", "1149.831");
     }
 
+    @Test
+    void parsesOfficialFederationRacePdfWithIntegerDistance() throws Exception {
+        Path path = fixture2026("Week 1", "THEUNISSEN2026JO.pdf");
+        String pdfText = pdfTextService.extract(path);
+
+        RecognisedReport recognised = recognitionService.recognise(path.getFileName().toString(), pdfText);
+        ReportDataset dataset = datasetFor(path, recognised, pdfText);
+
+        assertThat(recognised.family()).isEqualTo(ReportFamily.RACE_DETAIL);
+        assertThat(columnNames(dataset)).containsExactly(
+                "Pos", "Loft Name", "Ring Id", "Year", "Bird No", "Colour", "Sex",
+                "Clock Time", "Var", "Distance", "Velocity", "Pools"
+        );
+        assertThat(dataset.getRows()).hasSizeGreaterThan(100);
+        assertThat(rowValues(dataset, 0)).containsExactly(
+                "1", "CST B", "CST", "25", "1359", "BB", "C", "11:54:37", "0", "324502", "1300.0013", ""
+        );
+    }
+
+    @Test
+    void parsesOfficialClubRacePdfWithBirdCounter() throws Exception {
+        Path path = fixture2026("Week 1", "THEUNISSEN2026JOWESMOOT.pdf");
+        String pdfText = pdfTextService.extract(path);
+
+        RecognisedReport recognised = recognitionService.recognise(path.getFileName().toString(), pdfText);
+        ReportDataset dataset = datasetFor(path, recognised, pdfText);
+
+        assertThat(recognised.family()).isEqualTo(ReportFamily.RACE_DETAIL);
+        assertThat(columnNames(dataset)).containsExactly(
+                "Pos", "Loft Name", "Club", "Ring Id", "Year", "Bird No", "Colour", "Sex",
+                "Bd#", "Clock Time", "Var", "Coeff", "Velocity"
+        );
+        assertThat(dataset.getRows()).hasSizeGreaterThan(40);
+        assertThat(rowValues(dataset, 0)).containsExactly(
+                "1", "CST B", "PWF", "CST", "25", "1359", "BB", "C", "1", "11:54:37", "0", "", "1300.0013"
+        );
+    }
+
+    @Test
+    void parsesOfficialWeekOneRacePdfsWithoutRawFallback() throws Exception {
+        try (var paths = Files.list(Path.of("Docs", "Uitslae 2026", "Week 1"))) {
+            List<Path> racePdfs = paths
+                    .filter(path -> path.getFileName().toString().startsWith("THEUNISSEN"))
+                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".pdf"))
+                    .toList();
+
+            assertThat(racePdfs).isNotEmpty();
+            for (Path path : racePdfs) {
+                String pdfText = pdfTextService.extract(path);
+                RecognisedReport recognised = recognitionService.recognise(path.getFileName().toString(), pdfText);
+                ReportDataset dataset = datasetFor(path, recognised, pdfText);
+
+                assertThat(columnNames(dataset))
+                        .as(path.getFileName().toString())
+                        .doesNotContain("Line", "Text")
+                        .startsWith("Pos", "Loft Name");
+                assertThat(dataset.getRows())
+                        .as(path.getFileName().toString())
+                        .isNotEmpty();
+            }
+        }
+    }
+
     private ReportDataset datasetFor(Path path, RecognisedReport recognised, String pdfText) throws Exception {
         DocumentRecord document = new DocumentRecord(
                 recognised.title(),
@@ -105,6 +168,10 @@ class PdfRecognitionAndDatasetTest {
 
     private Path fixture(String folder, String filename) {
         return Path.of("Docs", "Uitslae", folder, filename);
+    }
+
+    private Path fixture2026(String folder, String filename) {
+        return Path.of("Docs", "Uitslae 2026", folder, filename);
     }
 
     private List<String> columnNames(ReportDataset dataset) {

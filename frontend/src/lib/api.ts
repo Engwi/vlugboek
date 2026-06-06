@@ -75,7 +75,14 @@ export function isUnauthorized(error: unknown) {
 
 function authHeaders(): Record<string, string> {
   const user = readStoredAuth();
-  return user?.token ? { Authorization: `Bearer ${user.token}` } : {};
+  const headers: Record<string, string> = {};
+  if (user?.token) {
+    headers.Authorization = `Bearer ${user.token}`;
+  }
+  if (user?.language) {
+    headers['Accept-Language'] = user.language;
+  }
+  return headers;
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {

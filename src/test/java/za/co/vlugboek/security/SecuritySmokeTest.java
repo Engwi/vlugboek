@@ -168,8 +168,10 @@ class SecuritySmokeTest {
 
         mvc.perform(multipart("/api/documents/upload")
                         .file(pdfFixture(path, "renamed-christiana.pdf"))
+                        .header("Accept-Language", "af")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Hierdie PDF is reeds opgelaai as \"Christiana 1 JO\"."))
                 .andExpect(jsonPath("$.documentId").value(documentId))
                 .andExpect(jsonPath("$.documentTitle").value("Christiana 1 JO"));
     }

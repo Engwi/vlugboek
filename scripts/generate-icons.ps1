@@ -75,6 +75,7 @@ function New-IconBitmap {
         [System.Drawing.Image]$Source,
         [int]$Size,
         [double]$ContentScale = 1.0,
+        [string]$BackgroundHex = '',
         [switch]$Round
     )
 
@@ -83,7 +84,11 @@ function New-IconBitmap {
 
     try {
         Set-Quality $graphics
-        $graphics.Clear([System.Drawing.Color]::Transparent)
+        if ($BackgroundHex) {
+            $graphics.Clear((New-Color $BackgroundHex))
+        } else {
+            $graphics.Clear([System.Drawing.Color]::Transparent)
+        }
 
         $clipPath = $null
         if ($Round) {
@@ -153,7 +158,8 @@ function Export-IconSet {
     }
 
     foreach ($entry in $webSizes.GetEnumerator()) {
-        $bmp = New-IconBitmap -Source $Source -Size $entry.Value
+        $background = if ($entry.Key -eq 'apple-touch-icon.png') { '#F8F6F1' } else { '' }
+        $bmp = New-IconBitmap -Source $Source -Size $entry.Value -BackgroundHex $background
         try {
             Save-Png $bmp (Join-Path $WebPublicDir $entry.Key)
         } finally {
@@ -179,24 +185,34 @@ function Export-IconSet {
 {
   "name": "Vlugboek",
   "short_name": "Vlugboek",
+  "description": "Suid-Afrikaanse wedvlug uitslae, ranglyste en amptelike PDF verslae.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "lang": "af-ZA",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0B1623",
+  "background_color": "#F8F6F1",
+  "categories": ["sports", "utilities"],
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ],
-  "theme_color": "#0B1623",
-  "background_color": "#F8F6F1",
-  "display": "standalone"
+  ]
 }
 '@
     Set-Content -LiteralPath (Join-Path $WebPublicDir 'site.webmanifest') -Value $manifest -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $WebPublicDir 'manifest.webmanifest') -Value $manifest -Encoding UTF8
 }
 
 function Write-Ico {

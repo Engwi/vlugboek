@@ -8,4 +8,5 @@ if exist "emailer\.env" (
     if /I "%%A"=="MAIL_WEBHOOK_TOKEN" set "VLUGBOEK_MAILER_TOKEN=%%B"
   )
 )
-"C:\Program Files\Java\jdk-21\bin\java.exe" -Djava.io.tmpdir=tmp -jar target\vlugboek-0.0.1-SNAPSHOT.jar > logs\backend.log 2> logs\backend.err
+if exist "%~dp0local-backend.env.cmd" call "%~dp0local-backend.env.cmd"
+"C:\Program Files\Java\jdk-21\bin\java.exe" "-Djava.io.tmpdir=tmp" -jar target\vlugboek-0.0.1-SNAPSHOT.jar > logs\backend.log 2> logs\backend.err

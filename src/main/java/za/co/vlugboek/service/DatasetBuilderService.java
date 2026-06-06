@@ -16,8 +16,15 @@ public class DatasetBuilderService {
     private static final Pattern INTEGER = Pattern.compile("-?\\d+");
     private static final Pattern TWO_DIGIT_YEAR = Pattern.compile("\\d{2}");
     private static final Pattern DECIMAL = Pattern.compile("-?\\d+\\.\\d+");
+    private static final Pattern DISTANCE = Pattern.compile("-?\\d+(?:\\.\\d+)?");
     private static final Pattern CLOCK = Pattern.compile("\\d{1,2}:\\d{2}:\\d{2}");
     private static final Pattern COMBINE_ROW = Pattern.compile("^(\\d+)\\s*(.+)$");
+
+    private enum RaceLayout {
+        LEGACY,
+        OFFICIAL_FEDERATION,
+        OFFICIAL_CLUB
+    }
 
     public ReportDataset buildDataset(DocumentRecord document, String pdfText) {
         ReportDataset dataset = new ReportDataset(
@@ -151,6 +158,16 @@ public class DatasetBuilderService {
     }
 
     private void addPretoriaRaceRows(ReportDataset dataset, List<String> lines) {
+        RaceLayout layout = raceLayout(lines);
+        if (layout == RaceLayout.OFFICIAL_FEDERATION) {
+            addOfficialFederationRaceRows(dataset, lines);
+            return;
+        }
+        if (layout == RaceLayout.OFFICIAL_CLUB) {
+            addOfficialClubRaceRows(dataset, lines);
+            return;
+        }
+
         addColumns(dataset, List.of(
                 "Pos",
                 "Loft Name",
@@ -222,6 +239,57 @@ public class DatasetBuilderService {
                     distance,
                     toWin
             ), rowIndex++);
+        }
+    }
+
+    private void addOfficialFederationRaceRows(ReportDataset dataset, List<String> lines) {
+        addColumns(dataset, List.of(
+                "Pos",
+                "Loft Name",
+                "Ring Id",
+                "Year",
+                "Bird No",
+                "Colour",
+                "Sex",
+                "Clock Time",
+                "Var",
+                "Distance",
+                "Velocity",
+                "Pools"
+        ));
+
+        int rowIndex = 0;
+        for (String line : lines) {
+            List<String> row = parseOfficialFederationRaceLine(line);
+            if (!row.isEmpty()) {
+                dataset.addRow(row, rowIndex++);
+            }
+        }
+    }
+
+    private void addOfficialClubRaceRows(ReportDataset dataset, List<String> lines) {
+        addColumns(dataset, List.of(
+                "Pos",
+                "Loft Name",
+                "Club",
+                "Ring Id",
+                "Year",
+                "Bird No",
+                "Colour",
+                "Sex",
+                "Bd#",
+                "Clock Time",
+                "Var",
+                "Coeff",
+                "Velocity"
+        ));
+
+        int rowIndex = 0;
+        for (String line : lines) {
+            List<String> row = parseOfficialClubRaceLine(line);
+            if (!row.isEmpty()) {
+                dataset.addRow(row, rowIndex++);
+            }
         }
     }
 
@@ -340,6 +408,117 @@ public class DatasetBuilderService {
         return parseBirdRaceLine(line, false);
     }
 
+    private List<String> parseOfficialFederationRaceLine(String line) {
+        String[] tokens = line.split("\\s+");
+        if (tokens.length < 10 || !INTEGER.matcher(tokens[0]).matches()) {
+            return List.of();
+        }
+
+        int cursor = tokens.length - 1;
+        String pools = "";
+        while (cursor >= 0 && !DECIMAL.matcher(tokens[cursor]).matches()) {
+            pools = tokens[cursor] + (pools.isBlank() ? "" : " " + pools);
+            cursor--;
+        }
+        if (cursor < 0) {
+            return List.of();
+        }
+        String velocity = tokens[cursor--];
+
+        if (cursor < 0 || !DISTANCE.matcher(tokens[cursor]).matches()) {
+            return List.of();
+        }
+        String distance = tokens[cursor--];
+
+        if (cursor < 0 || !INTEGER.matcher(tokens[cursor]).matches()) {
+            return List.of();
+        }
+        String var = tokens[cursor--];
+
+        if (cursor < 0 || !CLOCK.matcher(tokens[cursor]).matches()) {
+            return List.of();
+        }
+        String clockTime = tokens[cursor--];
+
+        int yearIndex = yearIndex(tokens, 1, cursor);
+        if (yearIndex < 2 || yearIndex + 1 > cursor) {
+            return List.of();
+        }
+
+        String loftName = join(tokens, 1, yearIndex - 1);
+        String ringId = tokens[yearIndex - 1];
+        String year = tokens[yearIndex];
+        String birdNo = tokens[yearIndex + 1];
+        String colour = join(tokens, yearIndex + 2, cursor + 1);
+        String sex = "";
+        if (yearIndex + 2 <= cursor && isSex(tokens[cursor])) {
+            sex = tokens[cursor];
+            colour = join(tokens, yearIndex + 2, cursor);
+        }
+
+        if (loftName.isBlank()) {
+            return List.of();
+        }
+
+        return List.of(tokens[0], loftName, ringId, year, birdNo, colour, sex, clockTime, var, distance, velocity, pools);
+    }
+
+    private List<String> parseOfficialClubRaceLine(String line) {
+        String[] tokens = line.split("\\s+");
+        if (tokens.length < 11 || !INTEGER.matcher(tokens[0]).matches()) {
+            return List.of();
+        }
+
+        int cursor = tokens.length - 1;
+        if (!DECIMAL.matcher(tokens[cursor]).matches()) {
+            return List.of();
+        }
+        String velocity = tokens[cursor--];
+
+        String coefficient = "";
+        if (cursor >= 0 && DECIMAL.matcher(tokens[cursor]).matches()) {
+            coefficient = tokens[cursor--];
+        }
+
+        if (cursor < 0 || !INTEGER.matcher(tokens[cursor]).matches()) {
+            return List.of();
+        }
+        String var = tokens[cursor--];
+
+        if (cursor < 0 || !CLOCK.matcher(tokens[cursor]).matches()) {
+            return List.of();
+        }
+        String clockTime = tokens[cursor--];
+
+        if (cursor < 0 || !INTEGER.matcher(tokens[cursor]).matches()) {
+            return List.of();
+        }
+        String birdCounter = tokens[cursor--];
+
+        int yearIndex = yearIndex(tokens, 1, cursor);
+        if (yearIndex < 3 || yearIndex + 1 > cursor) {
+            return List.of();
+        }
+
+        String loftName = join(tokens, 1, yearIndex - 2);
+        String club = tokens[yearIndex - 2];
+        String ringId = tokens[yearIndex - 1];
+        String year = tokens[yearIndex];
+        String birdNo = tokens[yearIndex + 1];
+        String colour = join(tokens, yearIndex + 2, cursor + 1);
+        String sex = "";
+        if (yearIndex + 2 <= cursor && isSex(tokens[cursor])) {
+            sex = tokens[cursor];
+            colour = join(tokens, yearIndex + 2, cursor);
+        }
+
+        if (loftName.isBlank()) {
+            return List.of();
+        }
+
+        return List.of(tokens[0], loftName, club, ringId, year, birdNo, colour, sex, birdCounter, clockTime, var, coefficient, velocity);
+    }
+
     private List<String> parseBirdRaceLine(String line, boolean includeToWin) {
         String[] tokens = line.split("\\s+");
         if (tokens.length < 10 || !INTEGER.matcher(tokens[0]).matches()) {
@@ -357,7 +536,7 @@ public class DatasetBuilderService {
             toWin = tokens[cursor--];
         }
 
-        if (cursor < 0 || !DECIMAL.matcher(tokens[cursor]).matches()) {
+        if (cursor < 0 || !DISTANCE.matcher(tokens[cursor]).matches()) {
             return List.of();
         }
         String distance = tokens[cursor--];
@@ -473,6 +652,19 @@ public class DatasetBuilderService {
     private boolean isCombine(List<String> lines, DocumentRecord document) {
         return document.getRecognisedType().toLowerCase(Locale.ROOT).contains("combine")
                 || lines.stream().anyMatch(line -> line.equalsIgnoreCase("GAUTENG WEST COMBINE"));
+    }
+
+    private RaceLayout raceLayout(List<String> lines) {
+        for (String line : lines) {
+            String normalised = line.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+            if (normalised.contains("pos loft name club bird particulars bd# clock time var")) {
+                return RaceLayout.OFFICIAL_CLUB;
+            }
+            if (normalised.contains("pos loft name bird particulars clock time var distance velocity")) {
+                return RaceLayout.OFFICIAL_FEDERATION;
+            }
+        }
+        return RaceLayout.LEGACY;
     }
 
     private int pointScoreCount(List<String> lines, int fallback) {

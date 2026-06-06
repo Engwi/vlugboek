@@ -1,10 +1,12 @@
 package za.co.vlugboek.api;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -26,9 +28,9 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(DuplicateDocumentException.class)
-    public ResponseEntity<Map<String, Object>> duplicateDocument(DuplicateDocumentException ex) {
+    public ResponseEntity<Map<String, Object>> duplicateDocument(DuplicateDocumentException ex, HttpServletRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("message", ex.getMessage());
+        body.put("message", ex.message(request.getHeader(HttpHeaders.ACCEPT_LANGUAGE)));
         body.put("documentId", ex.getDocumentId());
         body.put("documentTitle", ex.getDocumentTitle());
         body.put("originalFilename", ex.getOriginalFilename());

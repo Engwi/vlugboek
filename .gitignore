@@ -13,6 +13,7 @@ frontend/android/.gradle/
 frontend/android/**/build/
 mobile-keystores/
 scripts/.secrets/
+scripts/local-backend.env.cmd
 scripts/mobile-signing.local.ps1
 *.jks
 *.keystore

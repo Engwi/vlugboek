@@ -301,6 +301,25 @@ server {
     root $CURRENT_LINK/frontend;
     index index.html;
     client_max_body_size 30m;
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests" always;
+    add_header Strict-Transport-Security "max-age=15768000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+
+    location = /sw.js {
+        add_header Cache-Control "no-cache";
+        try_files \$uri =404;
+    }
+
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache";
+        try_files \$uri =404;
+    }
+
+    location = /site.webmanifest {
+        add_header Cache-Control "no-cache";
+        try_files \$uri =404;
+    }
 
     location = /downloads {
         return 301 /downloads/;
@@ -356,6 +375,24 @@ server {
     root $CURRENT_LINK/frontend;
     index index.html;
     client_max_body_size 30m;
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+
+    location = /sw.js {
+        add_header Cache-Control "no-cache";
+        try_files \$uri =404;
+    }
+
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache";
+        try_files \$uri =404;
+    }
+
+    location = /site.webmanifest {
+        add_header Cache-Control "no-cache";
+        try_files \$uri =404;
+    }
 
     location = /downloads {
         return 301 /downloads/;
