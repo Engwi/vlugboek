@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/admin/federations/*/admin").hasAnyRole("SYSTEM_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/federations/*").hasAnyRole("SYSTEM_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/admin/federations/*").hasAnyRole("SYSTEM_ADMIN", "ADMIN")
+                        .requestMatchers("/api/admin/ingestion-runs", "/api/admin/ingestion-runs/**").hasAnyRole("SYSTEM_ADMIN", "ADMIN")
                         .requestMatchers("/api/admin/**").hasAnyRole("SYSTEM_ADMIN", "FEDERATION_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/documents").hasAnyRole("SYSTEM_ADMIN", "FEDERATION_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/documents/upload").hasAnyRole("SYSTEM_ADMIN", "FEDERATION_ADMIN", "ADMIN")

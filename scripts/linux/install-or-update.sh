@@ -26,6 +26,7 @@ VLUGBOEK_SEED_DEMO_USERS_ENABLED="${VLUGBOEK_SEED_DEMO_USERS_ENABLED:-true}"
 VLUGBOEK_SEED_DEMO_EMAIL="${VLUGBOEK_SEED_DEMO_EMAIL:-demo@vlugboek.local}"
 VLUGBOEK_SEED_DEMO_NAME="${VLUGBOEK_SEED_DEMO_NAME:-Demo Fancier}"
 VLUGBOEK_SEED_DEMO_PASSWORD="${VLUGBOEK_SEED_DEMO_PASSWORD:-demo123}"
+VLUGBOEK_INGESTION_ROOT="${VLUGBOEK_INGESTION_ROOT:-$APP_ROOT/shared/ingestion}"
 AUTH_HEALTH_CHECK="${AUTH_HEALTH_CHECK:-true}"
 HEALTH_LOGIN_EMAIL="${HEALTH_LOGIN_EMAIL:-admin@vlugboek.local}"
 HEALTH_LOGIN_PASSWORD="${HEALTH_LOGIN_PASSWORD:-admin123}"
@@ -160,7 +161,7 @@ if ! command -v java >/dev/null 2>&1 || ! java -version 2>&1 | grep -q 'version 
 fi
 
 echo "Preparing directories..."
-mkdir -p "$APP_ROOT/incoming" "$APP_ROOT/releases" "$SHARED_DIR/data" "$SHARED_DIR/uploads" "$SHARED_DIR/logs" "$SHARED_DIR/tmp" "$SHARED_DIR/downloads"
+mkdir -p "$APP_ROOT/incoming" "$APP_ROOT/releases" "$SHARED_DIR/data" "$SHARED_DIR/uploads" "$SHARED_DIR/logs" "$SHARED_DIR/tmp" "$SHARED_DIR/downloads" "$VLUGBOEK_INGESTION_ROOT/inbox" "$VLUGBOEK_INGESTION_ROOT/processing" "$VLUGBOEK_INGESTION_ROOT/imported" "$VLUGBOEK_INGESTION_ROOT/skipped" "$VLUGBOEK_INGESTION_ROOT/rejected" "$VLUGBOEK_INGESTION_ROOT/reports"
 if [[ ! -f "$SHARED_DIR/downloads/index.html" ]]; then
   cat >"$SHARED_DIR/downloads/index.html" <<DOWNLOADS
 <!doctype html>
@@ -207,7 +208,7 @@ if [[ ! -f "$SHARED_DIR/downloads/index.html" ]]; then
 </html>
 DOWNLOADS
 fi
-chmod 755 "$APP_ROOT" "$SHARED_DIR" "$SHARED_DIR/downloads"
+chmod 755 "$APP_ROOT" "$SHARED_DIR" "$SHARED_DIR/downloads" "$VLUGBOEK_INGESTION_ROOT" "$VLUGBOEK_INGESTION_ROOT/inbox" "$VLUGBOEK_INGESTION_ROOT/processing" "$VLUGBOEK_INGESTION_ROOT/imported" "$VLUGBOEK_INGESTION_ROOT/skipped" "$VLUGBOEK_INGESTION_ROOT/rejected" "$VLUGBOEK_INGESTION_ROOT/reports"
 chmod 644 "$SHARED_DIR/downloads/index.html"
 rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
@@ -260,6 +261,7 @@ fi
 write_systemd_env "VLUGBOEK_H2_CONSOLE_ENABLED" "false"
 write_systemd_env "VLUGBOEK_PUBLIC_URL" "$VLUGBOEK_PUBLIC_URL"
 write_systemd_env "VLUGBOEK_UPLOADS_DIR" "$SHARED_DIR/uploads"
+write_systemd_env "VLUGBOEK_INGESTION_ROOT" "$VLUGBOEK_INGESTION_ROOT"
 write_systemd_env "VLUGBOEK_SEED_PDF_ROOT" "$CURRENT_LINK/Docs/Uitslae"
 write_systemd_env "VLUGBOEK_SEED_REFERENCE_DATA_ENABLED" "$VLUGBOEK_SEED_REFERENCE_DATA_ENABLED"
 write_systemd_env "VLUGBOEK_SEED_PDF_IMPORT_ENABLED" "$VLUGBOEK_SEED_PDF_IMPORT_ENABLED"

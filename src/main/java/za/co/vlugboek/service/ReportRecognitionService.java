@@ -30,6 +30,10 @@ public class ReportRecognitionService {
         String normalised = (textNormalised + " " + filenameNormalised).trim();
         LocalDateTime reportCreatedAt = extractDateTime(pdfText, REPORT_CREATED_AT);
 
+        if (isGautengWestCombine(filenameNormalised, textNormalised)) {
+            return combine(base, normalised, pdfText, reportCreatedAt);
+        }
+
         if (normalised.contains("hokpunte")) {
             return classification("Hok Punte", ClassificationCategory.HOK_PUNTE, "Loft Points / Hok Punte", reportCreatedAt);
         }
@@ -51,11 +55,100 @@ public class ReportRecognitionService {
         if (normalised.contains("lang pad") || normalised.contains("long distance log all races")) {
             return distance("Long Distance Log - All Races", ClassificationCategory.LONG_DISTANCE, reportCreatedAt);
         }
-        if (normalised.contains("gauteng west combine") || filenameNormalised.contains("gwc")) {
-            return race(combineTitle(base, pdfText), normalised, pdfText, "Combine Race Result");
+        return race(toRaceTitle(base, pdfText), normalised, pdfText, "Race Detail Report");
+    }
+
+    private boolean isGautengWestCombine(String filenameNormalised, String textNormalised) {
+        return textNormalised.contains("gauteng west combine") || filenameNormalised.contains("gwc");
+    }
+
+    private RecognisedReport combine(String base, String normalised, String pdfText, LocalDateTime reportCreatedAt) {
+        String heading = combineHeading(pdfText);
+        String headingNormalised = normalise(heading);
+        if (headingNormalised.contains("birds log short distance all races")) {
+            return combineLog("GWC BIRDS LOG - SHORT DISTANCE - ALL RACES",
+                    ClassificationCategory.COMBINE_BIRDS_LOG_SHORT_DISTANCE_ALL_RACES,
+                    "Combine Birds Log - Short Distance - All Races",
+                    reportCreatedAt);
+        }
+        if (headingNormalised.contains("birds log short distance open races")) {
+            return combineLog("GWC BIRDS LOG - SHORT DISTANCE - OPEN RACES",
+                    ClassificationCategory.COMBINE_BIRDS_LOG_SHORT_DISTANCE_OPEN_RACES,
+                    "Combine Birds Log - Short Distance - Open Races",
+                    reportCreatedAt);
+        }
+        if (headingNormalised.contains("birds log short distance yearling races")) {
+            return combineLog("GWC BIRDS LOG - SHORT DISTANCE - YEARLING RACES",
+                    ClassificationCategory.COMBINE_BIRDS_LOG_SHORT_DISTANCE_YEARLING_RACES,
+                    "Combine Birds Log - Short Distance - Yearling Races",
+                    reportCreatedAt);
+        }
+        if (headingNormalised.contains("short distance log all races")) {
+            return combineLog("GWC SHORT DISTANCE LOG - ALL RACES",
+                    ClassificationCategory.COMBINE_SHORT_DISTANCE_LOG_ALL_RACES,
+                    "Combine Short Distance Log - All Races",
+                    reportCreatedAt);
+        }
+        if (headingNormalised.contains("short distance log open races")) {
+            return combineLog("GWC SHORT DISTANCE LOG - OPEN RACES",
+                    ClassificationCategory.COMBINE_SHORT_DISTANCE_LOG_OPEN_RACES,
+                    "Combine Short Distance Log - Open Races",
+                    reportCreatedAt);
+        }
+        if (headingNormalised.contains("short distance log yearling races")) {
+            return combineLog("GWC SHORT DISTANCE LOG - YEARLING RACES",
+                    ClassificationCategory.COMBINE_SHORT_DISTANCE_LOG_YEARLING_RACES,
+                    "Combine Short Distance Log - Yearling Races",
+                    reportCreatedAt);
+        }
+        if (headingNormalised.contains("overall log all races")) {
+            return combineLog("GWC OVERALL LOG - ALL RACES",
+                    ClassificationCategory.COMBINE_OVERALL_LOG_ALL_RACES,
+                    "Combine Overall Log - All Races",
+                    reportCreatedAt);
+        }
+        if (headingNormalised.contains("overall log open races")) {
+            return combineLog("GWC OVERALL LOG - OPEN RACES",
+                    ClassificationCategory.COMBINE_OVERALL_LOG_OPEN_RACES,
+                    "Combine Overall Log - Open Races",
+                    reportCreatedAt);
+        }
+        if (headingNormalised.contains("overall log yearling races")) {
+            return combineLog("GWC OVERALL LOG - YEARLING RACES",
+                    ClassificationCategory.COMBINE_OVERALL_LOG_YEARLING_RACES,
+                    "Combine Overall Log - Yearling Races",
+                    reportCreatedAt);
         }
 
-        return race(toRaceTitle(base, pdfText), normalised, pdfText, "Race Detail Report");
+        LocalDateTime liberatedAt = extractDateTime(pdfText, LIBERATED_AT);
+        if (liberatedAt == null) {
+            liberatedAt = LocalDateTime.of(raceDateFor(normalised), LocalTime.of(7, 15));
+        }
+        String title = combineTitle(base, pdfText);
+        return new RecognisedReport(
+                title,
+                ReportFamily.COMBINE,
+                ClassificationCategory.NONE,
+                "Combine Race Result",
+                racePoint(title),
+                liberatedAt.toLocalDate(),
+                liberatedAt,
+                null
+        );
+    }
+
+    private RecognisedReport combineLog(String title, ClassificationCategory category, String type, LocalDateTime reportCreatedAt) {
+        LocalDate reportDate = reportCreatedAt == null ? LocalDate.of(2026, 5, 20) : reportCreatedAt.toLocalDate();
+        return new RecognisedReport(
+                title,
+                ReportFamily.COMBINE,
+                category,
+                type,
+                null,
+                reportDate,
+                null,
+                reportCreatedAt == null ? LocalDateTime.of(reportDate, LocalTime.of(18, 15)) : reportCreatedAt
+        );
     }
 
     private RecognisedReport classification(String title, ClassificationCategory category, String type, LocalDateTime reportCreatedAt) {
@@ -165,6 +258,23 @@ public class ReportRecognitionService {
             }
         }
         return toRaceTitle(base, pdfText);
+    }
+
+    private String combineHeading(String pdfText) {
+        String[] lines = pdfText == null ? new String[0] : pdfText.split("\\R");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (!line.equalsIgnoreCase("GAUTENG WEST COMBINE")) {
+                continue;
+            }
+            if (i + 2 < lines.length && lines[i + 1].trim().equalsIgnoreCase("BIRDS LOG")) {
+                return "BIRDS LOG " + lines[i + 2].trim();
+            }
+            if (i + 1 < lines.length) {
+                return lines[i + 1].trim();
+            }
+        }
+        return "";
     }
 
     private String racePoint(String title) {

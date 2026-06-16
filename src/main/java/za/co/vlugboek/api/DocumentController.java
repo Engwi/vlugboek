@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -67,8 +68,12 @@ public class DocumentController {
 
     @PostMapping("/upload")
     @Transactional
-    public UploadResponse upload(@RequestParam("file") MultipartFile file) {
-        DocumentRecord document = documentService.ingestUpload(file);
+    public UploadResponse upload(@RequestParam("file") MultipartFile file,
+                                 @RequestParam("effectiveDate") LocalDate effectiveDate) {
+        if (effectiveDate == null) {
+            throw new IllegalArgumentException("Choose an effective date for this import");
+        }
+        DocumentRecord document = documentService.ingestUpload(file, effectiveDate);
         ReportDataset dataset = datasets.findByDocumentId(document.getId()).orElseThrow();
         return new UploadResponse("PDF recognised. Review and confirm before publishing.", Dtos.document(document), Dtos.dataset(dataset));
     }

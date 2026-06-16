@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vlugboek Ingestion Run #1</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #f8f6f1; color: #182331; font-family: Segoe UI, Arial, sans-serif; }
+    main { max-width: 1180px; margin: 0 auto; }
+    h1 { margin: 0; color: #0b1623; font: 700 2rem Georgia, "Times New Roman", serif; }
+    .meta, .counts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .pill { border-radius: 8px; background: #ebe4d7; padding: 7px 10px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #d8d1c4; border-radius: 8px; overflow: hidden; }
+    th { background: #0b1623; color: #f8f6f1; text-align: left; font-size: 12px; padding: 10px; }
+    td { border-top: 1px solid #e5dfd4; padding: 10px; vertical-align: top; font-size: 13px; }
+    tr:nth-child(even) td { background: #fbfaf7; }
+    .status { font-weight: 700; white-space: nowrap; }
+    .IMPORTED { color: #2f6b57; }
+    .SUSPECT, .DUPLICATE { color: #aa7b18; }
+    .REJECTED, .FAILED { color: #8b2635; }
+    .empty { text-align: center; color: #5c6675; }
+    .path { color: #5c6675; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="pill">Vlugboek ingestion report</p>
+    <h1>Run #1</h1>
+    <div class="meta">
+      <span class="pill">Status: COMPLETED</span>
+      <span class="pill">Started: 2026-06-14 17:55:04</span>
+      <span class="pill">Completed: 2026-06-14 17:55:10</span>
+      <span class="pill">Inbox: C:\Development\Vlugboek\var\ingestion\inbox</span>
+    </div>
+    <div class="counts">
+      <span class="pill">Files: 13</span>
+      <span class="pill">Imported: 13</span>
+      <span class="pill">Suspect: 0</span>
+      <span class="pill">Duplicate: 0</span>
+      <span class="pill">Rejected: 0</span>
+      <span class="pill">Failed: 0</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>File</th>
+          <th>Document</th>
+          <th>Type</th>
+          <th>Rows</th>
+          <th>Columns</th>
+          <th>SHA-256</th>
+          <th>Message</th>
+          <th>Archive</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>BULTFONTEIN2026JO.pdf</td>
+  <td>BULTFONTEIN 1 YB</td>
+  <td>RACE_DETAIL</td>
+  <td>200</td>
+  <td>13</td>
+  <td class="path">156a0056cc4e9a81fdeaeb6c4d646681f9f5856200bfae1044c1cfe1cdc980e3</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-1-1-1-BULTFONTEIN2026JO.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>BULTFONTEIN2026JOEUREKA.pdf</td>
+  <td>BULTFONTEIN2026 JOEUREKA</td>
+  <td>RACE_DETAIL</td>
+  <td>50</td>
+  <td>13</td>
+  <td class="path">ee075ae8c17be1bc40868351152e0bfd03e8b54fb67f05380e0b3ec5226584c6</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-2-1-2-BULTFONTEIN2026JOEUREKA.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>BULTFONTEIN2026JOMagalies.pdf</td>
+  <td>BULTFONTEIN2026 JOMagalies</td>
+  <td>RACE_DETAIL</td>
+  <td>50</td>
+  <td>13</td>
+  <td class="path">2e6b9692f041d45dd18daeb5a93f82a9e05d03bac1586a62ad23e74ad34de56f</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-3-1-3-BULTFONTEIN2026JOMagalies.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>BULTFONTEIN2026JOWesmoot.pdf</td>
+  <td>BULTFONTEIN2026 JOWesmoot</td>
+  <td>RACE_DETAIL</td>
+  <td>50</td>
+  <td>13</td>
+  <td class="path">7da594ce23c10a9466a57dac3852d808f7f73a4633cb789b7a2b21b55cff08e3</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-4-1-4-BULTFONTEIN2026JOWesmoot.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>BULTFONTEIN2026OPE.pdf</td>
+  <td>BULTFONTEIN 1 OPE</td>
+  <td>RACE_DETAIL</td>
+  <td>200</td>
+  <td>13</td>
+  <td class="path">512232d1e894f54b23a7f151c6e79bc44ed9584ec9af895c36ab535e6feb08e4</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-5-1-5-BULTFONTEIN2026OPE.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>BULTFONTEIN2026OPEEUREKA.pdf</td>
+  <td>BULTFONTEIN2026 OPEEUREKA</td>
+  <td>RACE_DETAIL</td>
+  <td>50</td>
+  <td>13</td>
+  <td class="path">20685fc9e1de446502bc71e5a42380e23c547609bebe9296bff6e2788e6c41fe</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-6-1-6-BULTFONTEIN2026OPEEUREKA.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>BULTFONTEIN2026OPEMagalies.pdf</td>
+  <td>BULTFONTEIN2026 OPEMagalies</td>
+  <td>RACE_DETAIL</td>
+  <td>50</td>
+  <td>13</td>
+  <td class="path">27ccb40294ca4d49fb97ae5cd66f6aba0da6de0e858f325a7f0664171b3d50c1</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-7-1-7-BULTFONTEIN2026OPEMagalies.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>BULTFONTEIN2026OPEWesmoot.pdf</td>
+  <td>BULTFONTEIN2026 OPEWesmoot</td>
+  <td>RACE_DETAIL</td>
+  <td>50</td>
+  <td>13</td>
+  <td class="path">1a31df602d6871e03f25d60983bcbd91f56c989ca75f753c414c993fe9c2e9b7</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-8-1-8-BULTFONTEIN2026OPEWesmoot.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>EUREKALEDEPUNTE2026.pdf</td>
+  <td>Lede Punte</td>
+  <td>CLASSIFICATION</td>
+  <td>15</td>
+  <td>6</td>
+  <td class="path">4a9101541c07aa2f396f34168d4ae43c6e21c614f7819d1c0c4829af170d2085</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-9-1-9-EUREKALEDEPUNTE2026.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>LEDEPUNTE2026.pdf</td>
+  <td>Lede Punte</td>
+  <td>CLASSIFICATION</td>
+  <td>47</td>
+  <td>6</td>
+  <td class="path">de3bfcd80a75101e85ac00e472cc996b5530a01d8f7b825b5ab8ae8753d97715</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-10-1-10-LEDEPUNTE2026.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>MagaliesEDEPUNTE2026.pdf</td>
+  <td>Short Distance Log - All Races</td>
+  <td>DISTANCE_LOG</td>
+  <td>10</td>
+  <td>7</td>
+  <td class="path">f4209981d68ec1db0714f7290cccf3cc72460e71434cd6feb7a88cd7eb3c1398</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-11-1-11-MagaliesEDEPUNTE2026.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>WesmootLEDEPUNTE2026.pdf</td>
+  <td>Lede Punte</td>
+  <td>CLASSIFICATION</td>
+  <td>13</td>
+  <td>6</td>
+  <td class="path">d19c26b05baab5f6d422beef3c20eb0eda991eda7a0963c78cc121913f845a52</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-12-1-12-WesmootLEDEPUNTE2026.pdf</td>
+</tr>
+<tr>
+  <td class="status IMPORTED">IMPORTED</td>
+  <td>ZwatrkopLEDEPUNTE2026.pdf</td>
+  <td>Lede Punte</td>
+  <td>CLASSIFICATION</td>
+  <td>10</td>
+  <td>6</td>
+  <td class="path">52d80684d91cdce4ee2e5d17d7b4326c33584ae8010b172870ae361bbff34ecf</td>
+  <td>Imported and published</td>
+  <td class="path">C:\Development\Vlugboek\var\ingestion\imported\1-13-1-13-ZwatrkopLEDEPUNTE2026.pdf</td>
+</tr>
+
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

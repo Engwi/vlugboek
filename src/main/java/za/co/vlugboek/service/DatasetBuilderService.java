@@ -3,6 +3,7 @@ package za.co.vlugboek.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,9 @@ public class DatasetBuilderService {
     private static final Pattern DISTANCE = Pattern.compile("-?\\d+(?:\\.\\d+)?");
     private static final Pattern CLOCK = Pattern.compile("\\d{1,2}:\\d{2}:\\d{2}");
     private static final Pattern COMBINE_ROW = Pattern.compile("^(\\d+)\\s*(.+)$");
+    private static final Set<String> LEGACY_CLUB_CODES = Set.of(
+            "ACPK", "CPK", "HHH", "KPU", "KRPS", "NDK", "PWF", "WDK", "ZWDK"
+    );
 
     private enum RaceLayout {
         LEGACY,
@@ -37,8 +41,16 @@ public class DatasetBuilderService {
         List<String> lines = usefulLines(pdfText);
         if (lines.isEmpty()) {
             addRawLines(dataset, List.of("No extractable PDF text found"));
-        } else if (isCombine(lines, document)) {
+        } else if (isCombineRaceResult(lines, document)) {
             addCombineRows(dataset, lines);
+        } else if (document.getReportFamily() == ReportFamily.COMBINE
+                && document.getClassificationCategory().name().startsWith("COMBINE_BIRDS_LOG")) {
+            addCombineBirdRows(dataset, lines);
+        } else if (document.getReportFamily() == ReportFamily.COMBINE
+                && document.getClassificationCategory().name().startsWith("COMBINE_OVERALL_LOG")) {
+            addOverallPointsRows(dataset, lines);
+        } else if (document.getReportFamily() == ReportFamily.COMBINE) {
+            addDistancePointsRows(dataset, lines);
         } else if (document.getReportFamily() == ReportFamily.RACE_DETAIL) {
             addPretoriaRaceRows(dataset, lines);
         } else if (document.getReportFamily() == ReportFamily.CLASSIFICATION) {
@@ -184,9 +196,10 @@ public class DatasetBuilderService {
                 "ToWin"
         ));
 
+        boolean hasClubColumn = hasLegacyClubColumn(lines);
         int lineRowIndex = 0;
         for (String line : lines) {
-            List<String> row = parseRaceLine(line);
+            List<String> row = parseRaceLine(line, hasClubColumn);
             if (!row.isEmpty()) {
                 dataset.addRow(row, lineRowIndex++);
             }
@@ -356,6 +369,39 @@ public class DatasetBuilderService {
         return rowIndex > 0;
     }
 
+    private void addCombineBirdRows(ReportDataset dataset, List<String> lines) {
+        List<List<String>> rows = lines.stream()
+                .map(line -> parsePointLine(line, 0))
+                .filter(row -> !row.isEmpty())
+                .toList();
+        if (rows.isEmpty()) {
+            return;
+        }
+
+        int scoreCount = rows.stream()
+                .mapToInt(row -> Math.max(0, row.size() - 3))
+                .max()
+                .orElse(0);
+
+        List<String> columns = new ArrayList<>();
+        columns.add("Pos");
+        columns.add("Member");
+        for (int i = 1; i <= scoreCount; i++) {
+            columns.add("Race " + i);
+        }
+        columns.add("Total");
+        addColumns(dataset, columns);
+
+        int rowIndex = 0;
+        for (List<String> row : rows) {
+            List<String> normalisedRow = new ArrayList<>(row);
+            while (normalisedRow.size() < scoreCount + 3) {
+                normalisedRow.add(normalisedRow.size() - 1, "");
+            }
+            dataset.addRow(normalisedRow, rowIndex++);
+        }
+    }
+
     private List<String> parsePointLine(String line, int scoreCount) {
         String[] tokens = line.split("\\s+");
         if (tokens.length < 4 || !INTEGER.matcher(tokens[0]).matches()) {
@@ -396,8 +442,8 @@ public class DatasetBuilderService {
         return row;
     }
 
-    private List<String> parseRaceLine(String line) {
-        List<String> row = parseBirdRaceLine(line, true);
+    private List<String> parseRaceLine(String line, boolean hasClubColumn) {
+        List<String> row = parseBirdRaceLine(line, true, hasClubColumn);
         if (row.isEmpty()) {
             return row;
         }
@@ -405,7 +451,7 @@ public class DatasetBuilderService {
     }
 
     private List<String> parseCombineLine(String line) {
-        return parseBirdRaceLine(line, false);
+        return parseBirdRaceLine(line, false, true);
     }
 
     private List<String> parseOfficialFederationRaceLine(String line) {
@@ -519,7 +565,7 @@ public class DatasetBuilderService {
         return List.of(tokens[0], loftName, club, ringId, year, birdNo, colour, sex, birdCounter, clockTime, var, coefficient, velocity);
     }
 
-    private List<String> parseBirdRaceLine(String line, boolean includeToWin) {
+    private List<String> parseBirdRaceLine(String line, boolean includeToWin, boolean hasClubColumn) {
         String[] tokens = line.split("\\s+");
         if (tokens.length < 10 || !INTEGER.matcher(tokens[0]).matches()) {
             return List.of();
@@ -556,8 +602,14 @@ public class DatasetBuilderService {
             return List.of();
         }
 
-        String loftName = join(tokens, 1, yearIndex - 2);
-        String club = tokens[yearIndex - 2];
+        String loftName;
+        String club = "";
+        if (yearIndex > 3 && isLegacyClubCode(tokens[yearIndex - 2])) {
+            loftName = join(tokens, 1, yearIndex - 2);
+            club = tokens[yearIndex - 2];
+        } else {
+            loftName = join(tokens, 1, yearIndex - 1);
+        }
         String ringId = tokens[yearIndex - 1];
         String year = tokens[yearIndex];
         String birdNo = tokens[yearIndex + 1];
@@ -649,9 +701,70 @@ public class DatasetBuilderService {
         return normalised.equals("C") || normalised.equals("H");
     }
 
-    private boolean isCombine(List<String> lines, DocumentRecord document) {
-        return document.getRecognisedType().toLowerCase(Locale.ROOT).contains("combine")
-                || lines.stream().anyMatch(line -> line.equalsIgnoreCase("GAUTENG WEST COMBINE"));
+    private boolean isLegacyClubCode(String value) {
+        return LEGACY_CLUB_CODES.contains(value.toUpperCase(Locale.ROOT));
+    }
+
+    private boolean isCombineRaceResult(List<String> lines, DocumentRecord document) {
+        return document.getRecognisedType() != null
+                && document.getRecognisedType().toLowerCase(Locale.ROOT).contains("combine race result");
+    }
+
+    private boolean hasLegacyClubColumn(List<String> lines) {
+        for (String line : lines) {
+            String normalised = line.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+            if (normalised.contains("loft name bird particulars clock time")) {
+                return false;
+            }
+            if (normalised.contains("loft name bird particulars club velocity")) {
+                return true;
+            }
+            if (normalised.contains("loft name bird particulars velocity")) {
+                return false;
+            }
+
+            int birdParticulars = normalised.indexOf("bird particulars");
+            if (birdParticulars >= 0) {
+                int club = normalised.indexOf("club", birdParticulars);
+                int clubSp = normalised.indexOf("club sp", birdParticulars);
+                int velocity = normalised.indexOf("velocity", birdParticulars);
+                int clockTime = normalised.indexOf("clock time", birdParticulars);
+                int firstRaceValue = firstPositive(velocity, clockTime);
+                if (club >= 0 && club != clubSp && (firstRaceValue < 0 || club < firstRaceValue)) {
+                    return true;
+                }
+                if (firstRaceValue >= 0) {
+                    return false;
+                }
+            }
+        }
+
+        for (int i = 0; i < lines.size(); i++) {
+            if (!lines.get(i).equalsIgnoreCase("Bird Particulars")) {
+                continue;
+            }
+            for (int j = i + 1; j < lines.size(); j++) {
+                String normalised = lines.get(j).toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+                if (normalised.equals("club")) {
+                    return true;
+                }
+                if (normalised.equals("velocity")) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private int firstPositive(int first, int second) {
+        if (first < 0) {
+            return second;
+        }
+        if (second < 0) {
+            return first;
+        }
+        return Math.min(first, second);
     }
 
     private RaceLayout raceLayout(List<String> lines) {

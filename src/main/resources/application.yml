@@ -37,6 +37,8 @@ vlugboek:
   public-url: ${VLUGBOEK_PUBLIC_URL:http://localhost:5173}
   storage:
     uploads-dir: ${VLUGBOEK_UPLOADS_DIR:data/uploads}
+  ingestion:
+    root: ${VLUGBOEK_INGESTION_ROOT:var/ingestion}
   seed:
     pdf-root: ${VLUGBOEK_SEED_PDF_ROOT:Docs/Uitslae}
     reference-data-enabled: ${VLUGBOEK_SEED_REFERENCE_DATA_ENABLED:true}

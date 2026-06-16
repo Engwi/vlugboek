@@ -2,20 +2,25 @@ import {
   Award,
   Building2,
   BookOpen,
+  CalendarDays,
   ClipboardCheck,
   Download,
   Eye,
   EyeOff,
+  ExternalLink,
   FileDown,
   FileText,
   Flag,
+  FolderInput,
   KeyRound,
   Languages,
   LayoutGrid,
   LogIn,
   LogOut,
   Mail,
+  Play,
   Plus,
+  RefreshCw,
   Search,
   ShieldCheck,
   Save,
@@ -30,9 +35,9 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import heroPigeon from './assets/hero-pigeon.png';
 import { ApiError, api, clearStoredAuth, downloadAsset, isUnauthorized, openAsset, readStoredAuth, writeStoredAuth, type ReportFilters } from './lib/api';
 import { copy, Language } from './lib/i18n';
-import type { AuthResponse, ClubAdminDto, DashboardDto, DatasetDto, DocumentDto, FederationAdminDto, LabelDto, LeaderboardDto, LoftAdminDto, OrganisationTreeDto, UploadResponse } from './lib/types';
+import type { AuthResponse, ClubAdminDto, DashboardDto, DatasetDto, DocumentDto, FederationAdminDto, IngestionRunDto, IngestionWorkspaceDto, LabelDto, LeaderboardDto, LoftAdminDto, OrganisationTreeDto, UploadResponse } from './lib/types';
 
-type View = 'results' | 'leaderboards' | 'upload' | 'organisations';
+type View = 'results' | 'leaderboards' | 'upload' | 'organisations' | 'ingestion';
 type AuthMode = 'login' | 'register';
 type TableMode = 'table' | 'cards';
 type PasswordDialogMode = 'change' | 'forgot' | 'reset';
@@ -41,10 +46,11 @@ const familyOptions = [
   { value: '', labelKey: 'allTypes' },
   { value: 'RACE_DETAIL', labelKey: 'raceReports' },
   { value: 'CLASSIFICATION', labelKey: 'classifications' },
-  { value: 'DISTANCE_LOG', labelKey: 'distanceLogs' }
+  { value: 'DISTANCE_LOG', labelKey: 'distanceLogs' },
+  { value: 'COMBINE', labelKey: 'combine' }
 ] as const;
 
-const categoryOptions = [
+const standardCategoryOptions = [
   '',
   'HOK_PUNTE',
   'OPE_PUNTE',
@@ -53,6 +59,19 @@ const categoryOptions = [
   'SHORT_DISTANCE',
   'MIDDLE_DISTANCE',
   'LONG_DISTANCE'
+] as const;
+
+const combineCategoryOptions = [
+  '',
+  'COMBINE_BIRDS_LOG_SHORT_DISTANCE_ALL_RACES',
+  'COMBINE_BIRDS_LOG_SHORT_DISTANCE_OPEN_RACES',
+  'COMBINE_BIRDS_LOG_SHORT_DISTANCE_YEARLING_RACES',
+  'COMBINE_SHORT_DISTANCE_LOG_ALL_RACES',
+  'COMBINE_SHORT_DISTANCE_LOG_OPEN_RACES',
+  'COMBINE_SHORT_DISTANCE_LOG_YEARLING_RACES',
+  'COMBINE_OVERALL_LOG_ALL_RACES',
+  'COMBINE_OVERALL_LOG_OPEN_RACES',
+  'COMBINE_OVERALL_LOG_YEARLING_RACES'
 ] as const;
 
 const defaultAuth = {
@@ -89,6 +108,13 @@ const defaultReportFilters: ReportFilters = {
   family: 'RACE_DETAIL'
 };
 
+function todayInputValue() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 function isAdminUser(user: AuthResponse | null | undefined) {
   return user?.role === 'SYSTEM_ADMIN' || user?.role === 'FEDERATION_ADMIN' || user?.role === 'ADMIN';
 }
@@ -116,6 +142,7 @@ export default function App() {
   const [filterClubs, setFilterClubs] = useState<LabelDto[]>([]);
   const [filterLofts, setFilterLofts] = useState<LabelDto[]>([]);
   const [organisationTree, setOrganisationTree] = useState<OrganisationTreeDto | null>(null);
+  const [ingestionWorkspace, setIngestionWorkspace] = useState<IngestionWorkspaceDto | null>(null);
   const [reportFilters, setReportFilters] = useState<ReportFilters>(defaultReportFilters);
   const [selected, setSelected] = useState<DocumentDto | null>(null);
   const [dataset, setDataset] = useState<DatasetDto | null>(null);
@@ -124,12 +151,15 @@ export default function App() {
   const [passwordForm, setPasswordForm] = useState(defaultPasswordForm);
   const [datasetQuery, setDatasetQuery] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadEffectiveDate, setUploadEffectiveDate] = useState(todayInputValue);
+  const [ingestionEffectiveDate, setIngestionEffectiveDate] = useState(todayInputValue);
   const [pendingImport, setPendingImport] = useState<UploadResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [loadingBase, setLoadingBase] = useState(false);
   const [loadingReports, setLoadingReports] = useState(false);
   const [loadingDataset, setLoadingDataset] = useState(false);
   const [loadingOrganisations, setLoadingOrganisations] = useState(false);
+  const [loadingIngestion, setLoadingIngestion] = useState(false);
   const [notice, setNotice] = useState<string>('');
 
   useEffect(() => {
@@ -172,11 +202,20 @@ export default function App() {
     if (!isAdminUser(user) && (view === 'upload' || view === 'organisations')) {
       setView('results');
     }
+    if (!isSystemAdminUser(user) && view === 'ingestion') {
+      setView('results');
+    }
   }, [user?.role, view]);
 
   useEffect(() => {
     if (isAdminUser(user) && view === 'organisations') {
       void loadOrganisations();
+    }
+  }, [user?.role, view]);
+
+  useEffect(() => {
+    if (isSystemAdminUser(user) && view === 'ingestion') {
+      void loadIngestion();
     }
   }, [user?.role, view]);
 
@@ -255,6 +294,18 @@ export default function App() {
     }
   }
 
+  async function loadIngestion() {
+    if (!isSystemAdminUser(user)) return;
+    setLoadingIngestion(true);
+    try {
+      setIngestionWorkspace(await api.ingestionWorkspace());
+    } catch (error) {
+      showError(error);
+    } finally {
+      setLoadingIngestion(false);
+    }
+  }
+
   async function loadBase() {
     setLoadingBase(true);
     try {
@@ -289,6 +340,7 @@ export default function App() {
     setDataset(null);
     setUploadFile(null);
     setPendingImport(null);
+    setIngestionWorkspace(null);
   }
 
   async function loadReports() {
@@ -431,10 +483,13 @@ export default function App() {
   }
 
   async function handleUpload() {
-    if (!uploadFile) return;
+    if (!uploadFile || !uploadEffectiveDate) {
+      setNotice(t.chooseEffectiveDate);
+      return;
+    }
     setBusy(true);
     try {
-      const result = await api.upload(uploadFile);
+      const result = await api.upload(uploadFile, uploadEffectiveDate);
       setNotice(result.message);
       setUploadFile(null);
       setPendingImport(result);
@@ -460,6 +515,33 @@ export default function App() {
       showError(error);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleRunIngestion() {
+    if (!isSystemAdminUser(user)) return;
+    if (!ingestionEffectiveDate) {
+      setNotice(t.chooseEffectiveDate);
+      return;
+    }
+    setBusy(true);
+    try {
+      const run = await api.runIngestion(ingestionEffectiveDate);
+      setNotice(`${t.ingestionRuns} #${run.id}: ${run.status}`);
+      await loadIngestion();
+      await loadReports();
+    } catch (error) {
+      showError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openIngestionReport(run: IngestionRunDto) {
+    try {
+      await openAsset(run.reportUrl, `vlugboek-ingestion-${run.id}.html`);
+    } catch (error) {
+      showError(error);
     }
   }
 
@@ -594,6 +676,8 @@ export default function App() {
                 busy={busy}
                 uploadFile={uploadFile}
                 setUploadFile={setUploadFile}
+                effectiveDate={uploadEffectiveDate}
+                setEffectiveDate={setUploadEffectiveDate}
                 pendingImport={pendingImport}
                 onUpload={handleUpload}
                 onConfirm={handleConfirmImport}
@@ -613,6 +697,19 @@ export default function App() {
                 busy={busy || loadingOrganisations}
                 onChanged={refreshOrganisations}
                 onError={showError}
+              />
+            )}
+
+            {view === 'ingestion' && isSystemAdminUser(user) && (
+              <IngestionPanel
+                t={t}
+                workspace={ingestionWorkspace}
+                busy={busy || loadingIngestion}
+                effectiveDate={ingestionEffectiveDate}
+                setEffectiveDate={setIngestionEffectiveDate}
+                onRun={handleRunIngestion}
+                onRefresh={loadIngestion}
+                onOpenReport={openIngestionReport}
               />
             )}
           </div>
@@ -715,6 +812,7 @@ function Hero({
             <NavButton active={view === 'leaderboards'} onClick={() => setView('leaderboards')} icon={<Trophy />} label={t.leaderboards} />
             {isAdminUser(user) && <NavButton active={view === 'upload'} onClick={() => setView('upload')} icon={<UploadCloud />} label={t.upload} />}
             {isAdminUser(user) && <NavButton active={view === 'organisations'} onClick={() => setView('organisations')} icon={<Building2 />} label={t.organisations} />}
+            {isSystemAdminUser(user) && <NavButton active={view === 'ingestion'} onClick={() => setView('ingestion')} icon={<FolderInput />} label={t.ingestion} />}
             {user && (
               <button
                 title={t.signOut}
@@ -1135,6 +1233,7 @@ function ReportList({
   onSelect: (document: DocumentDto) => void;
 }) {
   const hasFilters = Object.values(filters).some(Boolean);
+  const categoryOptions = filters.family === 'COMBINE' ? combineCategoryOptions : standardCategoryOptions;
   const quickClass = (active: boolean) =>
     `flex h-9 min-w-0 items-center justify-center rounded-lg border px-2 text-xs font-semibold ${
       active
@@ -1176,7 +1275,7 @@ function ReportList({
         <FilterSelect
           label={t.type}
           value={filters.family ?? ''}
-          onChange={(family) => setFilters({ family })}
+          onChange={(family) => setFilters({ family, category: '', racePoint: '' })}
         >
           {familyOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -1294,6 +1393,7 @@ function ReportList({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-semibold text-midnight-950">{document.title}</p>
+                <p className="mt-0.5 truncate text-[11px] text-slateInk/80">{document.originalFilename}</p>
                 <p className="mt-1 text-xs text-slateInk">{labelFamily(document.reportFamily)}</p>
               </div>
               <span className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${statusClass(document.status)}`}>
@@ -1602,6 +1702,8 @@ function UploadPanel({
   busy,
   uploadFile,
   setUploadFile,
+  effectiveDate,
+  setEffectiveDate,
   pendingImport,
   onUpload,
   onConfirm,
@@ -1612,6 +1714,8 @@ function UploadPanel({
   busy: boolean;
   uploadFile: File | null;
   setUploadFile: (file: File | null) => void;
+  effectiveDate: string;
+  setEffectiveDate: (value: string) => void;
   pendingImport: UploadResponse | null;
   onUpload: () => void;
   onConfirm: () => void;
@@ -1629,6 +1733,19 @@ function UploadPanel({
           <UploadCloud className="h-8 w-8 text-championship-500" />
         </div>
 
+        <label className="mb-4 block rounded-lg border border-midnight-950/10 bg-ivory-100 px-4 py-3">
+          <span className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-championship-600">
+            <CalendarDays className="h-4 w-4" />
+            {t.effectiveDate}
+          </span>
+          <input
+            type="date"
+            value={effectiveDate}
+            onChange={(event) => setEffectiveDate(event.target.value)}
+            className="h-11 w-full rounded-lg border border-midnight-950/10 bg-white px-3 text-sm font-semibold text-midnight-950 outline-none focus:border-championship-500"
+          />
+        </label>
+
         <label className="flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-championship-500/70 bg-ivory-100 px-5 text-center hover:bg-championship-400/10">
           <FileDown className="mb-3 h-10 w-10 text-championship-600" />
           <span className="font-semibold text-midnight-950">{uploadFile?.name ?? t.choosePdf}</span>
@@ -1642,7 +1759,7 @@ function UploadPanel({
 
         <button
           className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-midnight-950 font-semibold text-ivory-100 hover:bg-midnight-800 disabled:opacity-60"
-          disabled={!uploadFile || busy}
+          disabled={!uploadFile || !effectiveDate || busy}
           onClick={onUpload}
         >
           <ClipboardCheck className="h-4 w-4" />
@@ -1716,7 +1833,10 @@ function UploadPanel({
               className="w-full rounded-lg border border-midnight-950/10 px-3 py-3 text-left hover:border-championship-500"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="min-w-0 truncate font-semibold">{document.title}</p>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{document.title}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-slateInk/80">{document.originalFilename}</p>
+                </div>
                 <span className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold ${statusClass(document.status)}`}>{document.status}</span>
               </div>
               <p className="mt-1 text-xs text-slateInk">{document.racePoint ?? document.recognisedType}</p>
@@ -1725,6 +1845,166 @@ function UploadPanel({
         </div>
       </div>
     </section>
+  );
+}
+
+function IngestionPanel({
+  t,
+  workspace,
+  busy,
+  effectiveDate,
+  setEffectiveDate,
+  onRun,
+  onRefresh,
+  onOpenReport
+}: {
+  t: Record<string, string>;
+  workspace: IngestionWorkspaceDto | null;
+  busy: boolean;
+  effectiveDate: string;
+  setEffectiveDate: (value: string) => void;
+  onRun: () => void;
+  onRefresh: () => void;
+  onOpenReport: (run: IngestionRunDto) => void;
+}) {
+  const latest = workspace?.runs[0] ?? null;
+
+  return (
+    <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="rounded-lg border border-midnight-950/10 bg-white p-5 shadow-card">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-championship-600">{t.systemAdmin}</p>
+            <h2 className="font-display text-3xl">{t.ingestion}</h2>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className="flex h-10 items-center gap-2 rounded-lg border border-midnight-950/10 bg-ivory-100 px-3">
+              <CalendarDays className="h-4 w-4 text-championship-600" />
+              <span className="sr-only">{t.effectiveDate}</span>
+              <input
+                type="date"
+                value={effectiveDate}
+                onChange={(event) => setEffectiveDate(event.target.value)}
+                className="h-8 bg-transparent text-sm font-semibold text-midnight-950 outline-none"
+              />
+            </label>
+            <button
+              title={t.loadingReport}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-midnight-950/10 text-midnight-900 hover:border-championship-500 disabled:opacity-60"
+              disabled={busy}
+              onClick={onRefresh}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+            <button
+              className="flex h-10 items-center gap-2 rounded-lg bg-midnight-950 px-4 text-sm font-semibold text-ivory-100 hover:bg-midnight-800 disabled:opacity-60"
+              disabled={busy || !effectiveDate}
+              onClick={onRun}
+            >
+              <Play className="h-4 w-4" />
+              {busy ? t.processing : t.ingestionRun}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-2 text-sm md:grid-cols-2">
+          <PathLine label={t.ingestionInbox} value={workspace?.inboxPath ?? '-'} strong />
+          <PathLine label={t.reportsFolder} value={workspace?.reportsPath ?? '-'} />
+          <PathLine label={t.importedFolder} value={workspace?.importedPath ?? '-'} />
+          <PathLine label={t.rejectedFolder} value={workspace?.rejectedPath ?? '-'} />
+          <PathLine label={t.skippedFolder} value={workspace?.skippedPath ?? '-'} />
+          <PathLine label={t.processingFolder} value={workspace?.processingPath ?? '-'} />
+        </div>
+
+        <div className="mt-5 overflow-x-auto rounded-lg border border-midnight-950/10">
+          <table className="w-full min-w-[760px] border-separate border-spacing-0 text-left text-sm">
+            <thead>
+              <tr>
+                <th className="border-b border-midnight-950/10 bg-midnight-950 px-3 py-2 font-semibold text-ivory-100">{t.ingestionRuns}</th>
+                <th className="border-b border-midnight-950/10 bg-midnight-950 px-3 py-2 font-semibold text-ivory-100">{t.files}</th>
+                <th className="border-b border-midnight-950/10 bg-midnight-950 px-3 py-2 font-semibold text-ivory-100">{t.imported}</th>
+                <th className="border-b border-midnight-950/10 bg-midnight-950 px-3 py-2 font-semibold text-ivory-100">{t.suspect}</th>
+                <th className="border-b border-midnight-950/10 bg-midnight-950 px-3 py-2 font-semibold text-ivory-100">{t.duplicates}</th>
+                <th className="border-b border-midnight-950/10 bg-midnight-950 px-3 py-2 font-semibold text-ivory-100">{t.failed}</th>
+                <th className="border-b border-midnight-950/10 bg-midnight-950 px-3 py-2 font-semibold text-ivory-100">{t.ingestionReport}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workspace?.runs.length ? workspace.runs.map((run, index) => (
+                <tr key={run.id} className={index % 2 === 0 ? 'bg-white' : 'bg-ivory-100'}>
+                  <td className="border-b border-midnight-950/10 px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${statusClass(run.status)}`}>{run.status}</span>
+                      <span className="font-semibold">#{run.id}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slateInk">{formatDateTime(run.startedAt)}</p>
+                  </td>
+                  <td className="border-b border-midnight-950/10 px-3 py-2">{run.totalFiles}</td>
+                  <td className="border-b border-midnight-950/10 px-3 py-2">{run.importedCount}</td>
+                  <td className="border-b border-midnight-950/10 px-3 py-2">{run.suspectCount}</td>
+                  <td className="border-b border-midnight-950/10 px-3 py-2">{run.duplicateCount}</td>
+                  <td className="border-b border-midnight-950/10 px-3 py-2">{run.failedCount + run.rejectedCount}</td>
+                  <td className="border-b border-midnight-950/10 px-3 py-2">
+                    <button
+                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-midnight-950/10 px-3 text-xs font-semibold text-midnight-900 hover:border-championship-500"
+                      onClick={() => onOpenReport(run)}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {t.openReport}
+                    </button>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-sm text-slateInk">{t.noIngestionRuns}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-midnight-950/10 bg-white p-4 shadow-card">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="font-display text-2xl">{t.latestRun}</h3>
+          <FolderInput className="h-6 w-6 text-championship-500" />
+        </div>
+        {!latest && <p className="rounded-lg bg-ivory-100 px-3 py-4 text-sm text-slateInk">{t.noIngestionRuns}</p>}
+        {latest && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <MiniStat icon={<FileText />} label={t.files} value={latest.totalFiles} />
+              <MiniStat icon={<ClipboardCheck />} label={t.imported} value={latest.importedCount} />
+              <MiniStat icon={<FolderInput />} label={t.duplicates} value={latest.duplicateCount} />
+              <MiniStat icon={<FileText />} label={t.suspect} value={latest.suspectCount} />
+            </div>
+            <div className="space-y-2">
+              {latest.items.slice(0, 10).map((item) => (
+                <div key={item.id} className="rounded-lg border border-midnight-950/10 px-3 py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate font-semibold text-midnight-950">{item.title ?? item.filename}</p>
+                    <span className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold ${statusClass(item.status)}`}>{item.status}</span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-slateInk">{item.filename}</p>
+                  {(item.message || item.warnings) && (
+                    <p className="mt-2 text-xs text-slateInk">{item.warnings ?? item.message}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PathLine({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${strong ? 'border-championship-500/50 bg-championship-400/10' : 'border-midnight-950/10 bg-ivory-100'}`}>
+      <p className="text-[11px] uppercase tracking-[0.16em] text-championship-600">{label}</p>
+      <p className="mt-1 break-all font-mono text-xs text-midnight-950">{value}</p>
+    </div>
   );
 }
 
@@ -2198,7 +2478,26 @@ function safeDownloadName(value: string) {
   return value.replace(/[^A-Za-z0-9.-]+/g, '-').replace(/^-+|-+$/g, '') || 'vlugboek-report';
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString();
+}
+
 function formatCategory(category: string) {
+  const labels: Record<string, string> = {
+    COMBINE_BIRDS_LOG_SHORT_DISTANCE_ALL_RACES: 'BIRDS LOG - SHORT DISTANCE - ALL RACES',
+    COMBINE_BIRDS_LOG_SHORT_DISTANCE_OPEN_RACES: 'BIRDS LOG - SHORT DISTANCE - OPEN RACES',
+    COMBINE_BIRDS_LOG_SHORT_DISTANCE_YEARLING_RACES: 'BIRDS LOG - SHORT DISTANCE - YEARLING RACES',
+    COMBINE_SHORT_DISTANCE_LOG_ALL_RACES: 'SHORT DISTANCE LOG - ALL RACES',
+    COMBINE_SHORT_DISTANCE_LOG_OPEN_RACES: 'SHORT DISTANCE LOG - OPEN RACES',
+    COMBINE_SHORT_DISTANCE_LOG_YEARLING_RACES: 'SHORT DISTANCE LOG - YEARLING RACES',
+    COMBINE_OVERALL_LOG_ALL_RACES: 'OVERALL LOG - ALL RACES',
+    COMBINE_OVERALL_LOG_OPEN_RACES: 'OVERALL LOG - OPEN RACES',
+    COMBINE_OVERALL_LOG_YEARLING_RACES: 'OVERALL LOG - YEARLING RACES'
+  };
+  if (labels[category]) {
+    return labels[category];
+  }
   return category
     .toLowerCase()
     .split('_')
@@ -2209,10 +2508,15 @@ function formatCategory(category: string) {
 function statusClass(status: string) {
   switch (status) {
     case 'FAILED':
+    case 'REJECTED':
       return 'bg-burgundy text-white';
     case 'RECOGNISED':
+    case 'SUSPECT':
+    case 'DUPLICATE':
+    case 'COMPLETED_WITH_WARNINGS':
       return 'bg-championship-500 text-midnight-950';
     case 'IMPORTED':
+    case 'COMPLETED':
       return 'bg-field text-white';
     default:
       return 'bg-midnight-950 text-ivory-100';

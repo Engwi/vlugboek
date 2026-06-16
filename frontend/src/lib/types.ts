@@ -98,6 +98,53 @@ export type UploadResponse = {
   dataset: DatasetDto;
 };
 
+export type IngestionItemDto = {
+  id: number;
+  status: string;
+  filename: string;
+  sourcePath?: string | null;
+  archivePath?: string | null;
+  contentSha256?: string | null;
+  fileSize?: number | null;
+  documentId?: number | null;
+  title?: string | null;
+  recognisedType?: string | null;
+  reportFamily?: string | null;
+  rowCount?: number | null;
+  columnCount?: number | null;
+  message?: string | null;
+  warnings?: string | null;
+};
+
+export type IngestionRunDto = {
+  id: number;
+  status: string;
+  startedByEmail?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+  inboxPath: string;
+  reportPath?: string | null;
+  reportUrl: string;
+  totalFiles: number;
+  importedCount: number;
+  suspectCount: number;
+  duplicateCount: number;
+  rejectedCount: number;
+  failedCount: number;
+  items: IngestionItemDto[];
+};
+
+export type IngestionWorkspaceDto = {
+  rootPath: string;
+  inboxPath: string;
+  processingPath: string;
+  importedPath: string;
+  skippedPath: string;
+  rejectedPath: string;
+  reportsPath: string;
+  runs: IngestionRunDto[];
+};
+
 export type LeaderboardDto = {
   category: string;
   title: string;

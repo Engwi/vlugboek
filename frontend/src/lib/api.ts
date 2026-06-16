@@ -1,5 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
-import type { AuthResponse, DashboardDto, DatasetDto, DocumentDto, LabelDto, LeaderboardDto, OrganisationTreeDto, UploadResponse, UserAdminDto } from './types';
+import type { AuthResponse, DashboardDto, DatasetDto, DocumentDto, IngestionRunDto, IngestionWorkspaceDto, LabelDto, LeaderboardDto, OrganisationTreeDto, UploadResponse, UserAdminDto } from './types';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const AUTH_STORAGE_KEY = 'vlugboek.user';
@@ -156,6 +156,11 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload)
   }),
+  ingestionWorkspace: () => request<IngestionWorkspaceDto>('/api/admin/ingestion-runs'),
+  runIngestion: (effectiveDate: string) => request<IngestionRunDto>('/api/admin/ingestion-runs', {
+    method: 'POST',
+    body: JSON.stringify({ effectiveDate })
+  }),
   login: (payload: Record<string, unknown>) => request<AuthResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(payload)
@@ -180,9 +185,10 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload)
   }),
-  upload: async (file: File) => {
+  upload: async (file: File, effectiveDate: string) => {
     const form = new FormData();
     form.append('file', file);
+    form.append('effectiveDate', effectiveDate);
     const response = await fetch(`${API_BASE}/api/documents/upload`, {
       method: 'POST',
       headers: authHeaders(),

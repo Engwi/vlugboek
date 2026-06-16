@@ -1,11 +1,13 @@
 package za.co.vlugboek.security;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -109,10 +111,9 @@ class SecuritySmokeTest {
                 .andExpect(jsonPath("$.dataset.rows").isArray())
                 .andReturn();
 
-        long documentId = objectMapper.readTree(upload.getResponse().getContentAsString())
-                .get("document")
-                .get("id")
-                .asLong();
+        JsonNode uploadedDocument = objectMapper.readTree(upload.getResponse().getContentAsString()).get("document");
+        long documentId = uploadedDocument.get("id").asLong();
+        long federationId = uploadedDocument.get("federation").get("id").asLong();
 
         mvc.perform(get("/api/reports")
                         .header("Authorization", "Bearer " + userToken))
@@ -148,6 +149,32 @@ class SecuritySmokeTest {
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == " + documentId + ")]").isEmpty());
+
+        Path combinePath = Path.of("Docs", "Uitslae", "# 7 Combine Results", "GWC BEAUFORT WEST OPEN.pdf");
+        MvcResult combineUpload = mvc.perform(multipart("/api/documents/upload")
+                        .file(pdfFixture(combinePath, "GWC BEAUFORT WEST OPEN.pdf"))
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.document.federation").value(nullValue()))
+                .andReturn();
+
+        long combineDocumentId = objectMapper.readTree(combineUpload.getResponse().getContentAsString())
+                .get("document")
+                .get("id")
+                .asLong();
+
+        mvc.perform(post("/api/documents/" + combineDocumentId + "/confirm")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.document.status").value("IMPORTED"))
+                .andExpect(jsonPath("$.document.availableToUsers").value(true));
+
+        mvc.perform(get("/api/reports")
+                        .param("federationId", String.valueOf(federationId))
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + documentId + ")]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.id == " + combineDocumentId + ")]").isEmpty());
     }
 
     @Test

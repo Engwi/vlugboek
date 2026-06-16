@@ -1,3 +1,18 @@
+Local H2 Storage
+----------------
+build-local
+start-local
+
+
+
+
+http://127.0.0.1:8081/h2-console
+
+Driver Class: org.h2.Driver
+JDBC URL:     jdbc:h2:file:C:/Development/Vlugboek/data/vlugboek;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE
+User Name:    sa
+Password:     <leave blank>
+
 Deploy to linux with DB Push
 -----------------------------
 .\scripts\deploy-linux.ps1 `
@@ -12,7 +27,7 @@ Deploy to linux with DB Push
   
 Nice Mobile Build Run AND DEPLOY
 ---------------------------------
-.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 0.7.0-pr16 -VersionCode 25018
+.\scripts\deploy-mobile-client.ps1 -BuildType release -VersionName 0.8.0-pr17 -VersionCode 25019
 
 
 Security

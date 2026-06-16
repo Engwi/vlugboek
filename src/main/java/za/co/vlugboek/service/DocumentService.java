@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,18 +69,32 @@ public class DocumentService {
 
     @Transactional
     public DocumentRecord ingestExistingPdf(Path pdfPath) {
-        String filename = pdfPath.getFileName().toString();
+        return ingestExistingPdf(pdfPath, pdfPath.getFileName().toString());
+    }
+
+    @Transactional
+    public DocumentRecord ingestExistingPdf(Path pdfPath, String filename) {
+        return ingestExistingPdf(pdfPath, filename, null);
+    }
+
+    @Transactional
+    public DocumentRecord ingestExistingPdf(Path pdfPath, String filename, LocalDate effectiveDate) {
         long size = sizeOf(pdfPath);
         String contentSha256 = sha256(pdfPath);
         return findDuplicateDocument(contentSha256, size)
                 .map(this::ensureMetadata)
                 .or(() -> documents.findFirstByOriginalFilenameOrderByUploadedAtDesc(filename)
                         .map(document -> ensureContentHash(document, contentSha256)))
-                .orElseGet(() -> importDocument(filename, pdfPath.toAbsolutePath(), "application/pdf", size, contentSha256, true));
+                .orElseGet(() -> importDocument(filename, pdfPath.toAbsolutePath(), "application/pdf", size, contentSha256, true, effectiveDate));
     }
 
     @Transactional
     public DocumentRecord ingestUpload(MultipartFile file) {
+        return ingestUpload(file, null);
+    }
+
+    @Transactional
+    public DocumentRecord ingestUpload(MultipartFile file, LocalDate effectiveDate) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Upload a non-empty PDF");
         }
@@ -112,7 +127,7 @@ public class DocumentService {
                     "size", size,
                     "sha256", contentSha256
             ));
-            return importDocument(original, stored, file.getContentType(), size, contentSha256, false);
+            return importDocument(original, stored, file.getContentType(), size, contentSha256, false, effectiveDate);
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
@@ -145,15 +160,28 @@ public class DocumentService {
         return Path.of(document.getStoredPath());
     }
 
-    private DocumentRecord importDocument(String filename, Path path, String contentType, long size, String contentSha256, boolean publishImmediately) {
+    public String contentSha256(Path path) {
+        return sha256(path);
+    }
+
+    @Transactional
+    public Optional<DocumentRecord> findDuplicatePdf(Path path) {
+        return findDuplicateDocument(sha256(path), sizeOf(path));
+    }
+
+    private DocumentRecord importDocument(String filename, Path path, String contentType, long size, String contentSha256,
+                                          boolean publishImmediately, LocalDate effectiveDate) {
         String pdfText = pdfTextService.extract(path);
         RecognisedReport recognised = recognitionService.recognise(filename, pdfText);
+        LocalDate officialDate = effectiveDate == null ? recognised.officialDate() : effectiveDate;
+        var definitiveDateTime = effectiveDate == null ? null : effectiveDate.atStartOfDay();
         structuredLogs.info(log, "document.recognised", structuredLogs.fields(
                 "filename", filename,
                 "title", recognised.title(),
                 "family", recognised.family().name(),
                 "category", recognised.category().name(),
                 "racePoint", recognised.racePoint(),
+                "effectiveDate", officialDate == null ? "" : officialDate.toString(),
                 "publishImmediately", publishImmediately
         ));
         DocumentRecord document = new DocumentRecord(recognised.title(), filename, path.toString(), contentType, size);
@@ -163,15 +191,15 @@ public class DocumentService {
                 recognised.category(),
                 recognised.recognisedType(),
                 recognised.title(),
-                recognised.officialDate(),
-                recognised.liberatedAt(),
-                recognised.reportCreatedAt()
+                officialDate,
+                definitiveDateTime == null ? recognised.liberatedAt() : definitiveDateTime,
+                definitiveDateTime == null ? recognised.reportCreatedAt() : definitiveDateTime
         );
         document = documents.saveAndFlush(document);
 
         ReportDataset dataset = datasetBuilderService.buildDataset(document, pdfText);
         dataset = datasets.save(dataset);
-        applyMetadata(document, dataset, recognised);
+        applyMetadata(document, dataset, recognised, pdfText);
         structuredLogs.info(log, "document.dataset.built", structuredLogs.fields(
                 "documentId", document.getId(),
                 "title", document.getTitle(),
@@ -189,8 +217,10 @@ public class DocumentService {
         if (document.hasMetadata()) {
             return document;
         }
-        datasets.findByDocumentId(document.getId()).ifPresent(dataset ->
-                applyMetadata(document, dataset, recognitionService.recognise(document.getOriginalFilename(), document.getTitle())));
+        datasets.findByDocumentId(document.getId()).ifPresent(dataset -> {
+            String pdfText = extractStoredPdfText(document);
+            applyMetadata(document, dataset, recognitionService.recognise(document.getOriginalFilename(), pdfText), pdfText);
+        });
         return documents.save(document);
     }
 
@@ -220,14 +250,43 @@ public class DocumentService {
                 });
     }
 
-    private void applyMetadata(DocumentRecord document, ReportDataset dataset, RecognisedReport recognised) {
-        Federation federation = federations.findByCode("PWDF").orElse(null);
+    private void applyMetadata(DocumentRecord document, ReportDataset dataset, RecognisedReport recognised, String pdfText) {
+        Federation federation = recognisedFederation(pdfText).orElse(null);
         document.applyMetadata(
                 federation,
                 recognised.racePoint(),
                 distinctColumnValues(dataset, "Club"),
                 distinctColumnValues(dataset, "Loft Name", "Member")
         );
+    }
+
+    private Optional<Federation> recognisedFederation(String pdfText) {
+        if (pdfText == null || pdfText.isBlank()) {
+            return Optional.empty();
+        }
+
+        List<String> topLines = pdfText.lines()
+                .map(String::trim)
+                .filter(line -> !line.isBlank())
+                .limit(12)
+                .toList();
+
+        boolean pretoriaFederation = topLines.stream()
+                .map(this::normalise)
+                .anyMatch(line -> line.contains("pretoria wedvlug federasie"));
+        if (pretoriaFederation) {
+            return federations.findByCode("PWDF");
+        }
+
+        return Optional.empty();
+    }
+
+    private String extractStoredPdfText(DocumentRecord document) {
+        Path path = Path.of(document.getStoredPath());
+        if (!Files.isRegularFile(path)) {
+            return "";
+        }
+        return pdfTextService.extract(path);
     }
 
     private Set<String> distinctColumnValues(ReportDataset dataset, String... candidateColumns) {

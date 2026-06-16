@@ -5,6 +5,8 @@ import java.util.List;
 import za.co.vlugboek.api.dto.AuthResponse;
 import za.co.vlugboek.api.dto.DatasetDto;
 import za.co.vlugboek.api.dto.DocumentDto;
+import za.co.vlugboek.api.dto.IngestionItemDto;
+import za.co.vlugboek.api.dto.IngestionRunDto;
 import za.co.vlugboek.api.dto.LabelDto;
 import za.co.vlugboek.api.dto.LeaderboardDto;
 import za.co.vlugboek.api.dto.UserAdminDto;
@@ -13,6 +15,8 @@ import za.co.vlugboek.domain.ClassificationSnapshot;
 import za.co.vlugboek.domain.Club;
 import za.co.vlugboek.domain.DocumentRecord;
 import za.co.vlugboek.domain.Federation;
+import za.co.vlugboek.domain.IngestionItem;
+import za.co.vlugboek.domain.IngestionRun;
 import za.co.vlugboek.domain.Loft;
 import za.co.vlugboek.domain.ReportCell;
 import za.co.vlugboek.domain.ReportColumn;
@@ -108,6 +112,46 @@ public final class Dtos {
                 snapshot.getSnapshotDate(),
                 dataset(dataset).columns(),
                 dataset(dataset).rows()
+        );
+    }
+
+    public static IngestionRunDto ingestionRun(IngestionRun run, List<IngestionItem> items) {
+        return new IngestionRunDto(
+                run.getId(),
+                run.getStatus().name(),
+                run.getStartedByEmail(),
+                run.getStartedAt(),
+                run.getCompletedAt(),
+                run.getInboxPath(),
+                run.getReportPath(),
+                "/api/admin/ingestion-runs/" + run.getId() + "/report.html",
+                run.getTotalFiles(),
+                run.getImportedCount(),
+                run.getSuspectCount(),
+                run.getDuplicateCount(),
+                run.getRejectedCount(),
+                run.getFailedCount(),
+                items.stream().map(Dtos::ingestionItem).toList()
+        );
+    }
+
+    public static IngestionItemDto ingestionItem(IngestionItem item) {
+        return new IngestionItemDto(
+                item.getId(),
+                item.getStatus().name(),
+                item.getFilename(),
+                item.getSourcePath(),
+                item.getArchivePath(),
+                item.getContentSha256(),
+                item.getFileSize(),
+                item.getDocumentId(),
+                item.getTitle(),
+                item.getRecognisedType(),
+                item.getReportFamily(),
+                item.getRowCount(),
+                item.getColumnCount(),
+                item.getMessage(),
+                item.getWarnings()
         );
     }
 }
